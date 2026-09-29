@@ -1,27 +1,46 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
-  Calendar,
   Plus,
   Video,
   Copy,
   Check,
-  Clock,
-  Sparkles,
-  ExternalLink,
-  ChevronRight,
-  ShieldCheck,
-  Box
+  MessageCircle,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { UserProfile, Meeting, createInstantMeeting, fetchUpcomingMeetings, fetchRecentMeetings } from '@/lib/api';
 
 interface DashboardProps {
   user: UserProfile | null;
-  onOpenJoin: () => void;
-  onOpenSchedule: () => void;
+  onOpenJoin?: () => void;
+  onOpenSchedule?: () => void;
   onStartMeeting: (meetingId: string) => void;
 }
+
+// 3D Isometric Open Blue Box SVG matching Zoom website's recent activity empty state
+const Blue3DBoxSVG = () => (
+  <svg width="120" height="96" viewBox="0 0 120 96" fill="none" xmlns="http://www.w3.org/2000/svg" className="mx-auto drop-shadow-xs">
+    {/* Soft floor shadow */}
+    <ellipse cx="60" cy="84" rx="42" ry="7" fill="#000000" fillOpacity="0.08" />
+    {/* Inside dark blue floor */}
+    <path d="M30 42L60 30L90 42L60 54L30 42Z" fill="#1A70E6" />
+    {/* Left Open Flap */}
+    <path d="M30 42L18 26L48 20L60 30L30 42Z" fill="#71B2FF" />
+    {/* Right Open Flap */}
+    <path d="M90 42L102 26L72 20L60 30L90 42Z" fill="#71B2FF" />
+    {/* Front Left Flap */}
+    <path d="M30 42L60 54L48 72L18 56L30 42Z" fill="#4B9BFF" />
+    {/* Front Right Flap */}
+    <path d="M90 42L60 54L72 72L102 56L90 42Z" fill="#4B9BFF" />
+    {/* Box Body Front Left Panel */}
+    <path d="M30 42V68L60 80V54L30 42Z" fill="#0E71EB" />
+    {/* Box Body Front Right Panel */}
+    <path d="M60 54V80L90 68V42L60 54Z" fill="#0056C6" />
+  </svg>
+);
 
 export const Dashboard: React.FC<DashboardProps> = ({
   user,
@@ -29,13 +48,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onOpenSchedule,
   onStartMeeting,
 }) => {
-  const [copiedId, setCopiedId] = useState(false);
+  const [copiedPmi, setCopiedPmi] = useState(false);
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
   const [upcoming, setUpcoming] = useState<Meeting[]>([]);
   const [recent, setRecent] = useState<Meeting[]>([]);
   const [isLoadingMeetings, setIsLoadingMeetings] = useState(true);
 
-  // Load upcoming and recent meetings from FastAPI backend
+  // Pagination states (3 items per page)
+  const [upcomingPage, setUpcomingPage] = useState(1);
+  const [recentPage, setRecentPage] = useState(1);
+  const ITEMS_PER_PAGE = 2;
+
   const loadMeetings = async () => {
     try {
       setIsLoadingMeetings(true);
@@ -57,11 +80,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
   }, []);
 
   const handleCopyPmi = () => {
-    const pmi = user?.personal_meeting_id || '6997723211';
+    const pmi = user?.personal_meeting_id || '5602842970';
     const formatted = `${pmi.slice(0, 3)} ${pmi.slice(3, 6)} ${pmi.slice(6)}`;
     navigator.clipboard.writeText(formatted);
-    setCopiedId(true);
-    setTimeout(() => setCopiedId(false), 2000);
+    setCopiedPmi(true);
+    setTimeout(() => setCopiedPmi(false), 2000);
   };
 
   const handleCopyInviteUrl = (url: string, id: string) => {
@@ -79,211 +102,257 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
   };
 
+  // Paginated Slices
+  const totalUpcomingPages = Math.ceil(upcoming.length / ITEMS_PER_PAGE) || 1;
+  const paginatedUpcoming = upcoming.slice(
+    (upcomingPage - 1) * ITEMS_PER_PAGE,
+    upcomingPage * ITEMS_PER_PAGE
+  );
+
+  const totalRecentPages = Math.ceil(recent.length / ITEMS_PER_PAGE) || 1;
+  const paginatedRecent = recent.slice(
+    (recentPage - 1) * ITEMS_PER_PAGE,
+    recentPage * ITEMS_PER_PAGE
+  );
+
   return (
-    <div className="flex-1 bg-slate-100/70 p-4 lg:p-8 space-y-6 overflow-y-auto">
-      {/* Top Welcome Banner & Digital Clock */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs gap-4">
-        <div className="flex items-center space-x-3.5">
-          <div className="w-12 h-12 rounded-full bg-blue-100 text-zoom-blue flex items-center justify-center font-bold text-lg border border-blue-200 shadow-2xs">
-            {user ? user.name.split(' ').map(n => n[0]).join('') : 'JT'}
+    <div className="flex-1 bg-white p-5 lg:p-7 space-y-6 font-sans text-xs text-[#232333] select-none relative min-h-[calc(100vh-3.5rem)]">
+      {/* Top Main Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+        {/* Top-Left Card: Profile Box */}
+        <div className="lg:col-span-7 bg-white p-5 lg:p-6 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-4">
+          {/* Left: Avatar + Name + Plan */}
+          <div className="flex items-center space-x-4">
+            <div className="w-14 h-14 rounded-2xl bg-[#e4e7eb] text-[#9ea4b0] flex items-center justify-center shrink-0">
+              <svg className="w-9 h-9 fill-current" viewBox="0 0 24 24">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+              </svg>
+            </div>
+            <div>
+              <h1 className="text-[22px] font-bold text-[#131619] tracking-tight leading-tight">
+                {user ? user.name : 'Arman'} .
+              </h1>
+              <p className="text-[#747474] text-[13px] font-normal mt-0.5">
+                Plan: <span className="font-bold text-[#000529]">{user?.plan_type || 'Workplace Basic'}</span>
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              Welcome back, {user ? user.name : 'Arman'}
-            </h1>
-            <p className="text-xs text-slate-500 font-medium">
-              Plan: <span className="font-semibold text-zoom-blue">{user?.plan_type || 'Workplace Basic'}</span> | Account ID: 699-772-3211
-            </p>
+
+          {/* Right: Manage Plan Button + View Plan Details Link */}
+          <div className="flex flex-col items-center sm:items-end space-y-2 w-full sm:w-auto">
+            <button className="px-5 py-2 bg-[#e8f2ff] hover:bg-[#d8e8ff] text-[#0e71eb] font-semibold text-[13px] rounded-full transition-colors w-full sm:w-auto text-center shadow-none cursor-pointer">
+              Manage Plan
+            </button>
+            <a href="#" className="text-[#0e71eb] text-[12px] font-normal hover:underline text-center sm:text-right cursor-pointer">
+              View Plan Details
+            </a>
           </div>
         </div>
 
-        <div className="flex items-center space-x-3">
-          <button
-            onClick={handleCopyPmi}
-            className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200/80 text-slate-700 rounded-lg transition-colors border border-slate-200"
-          >
-            {copiedId ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
-            <span>{copiedId ? 'Copied PMI!' : 'Copy PMI'}</span>
-          </button>
+        {/* Top-Right Card: Quick Actions & PMI */}
+        <div className="lg:col-span-5 bg-white p-5 lg:p-6 rounded-2xl border border-slate-200/80 shadow-2xs space-y-4 flex flex-col justify-between">
+          <div className="grid grid-cols-3 gap-3">
+            <Link
+              href="/schedule"
+              className="group flex flex-col items-center justify-center p-2 text-center"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-[#0e71eb] text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform mb-1.5">
+                <span className="font-bold text-base leading-none">19</span>
+              </div>
+              <span className="text-[12px] font-normal text-[#232333]">Schedule</span>
+            </Link>
 
-          <button className="px-3.5 py-1.5 text-xs font-bold bg-zoom-blue text-white rounded-lg shadow-2xs hover:bg-zoom-blue-hover transition-colors">
-            Manage Plan
-          </button>
+            <Link
+              href="/join"
+              className="group flex flex-col items-center justify-center p-2 text-center"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-[#0e71eb] text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform mb-1.5">
+                <Plus className="w-6 h-6 stroke-[3]" />
+              </div>
+              <span className="text-[12px] font-normal text-[#232333]">Join</span>
+            </Link>
+
+            <button
+              onClick={handleInstantMeeting}
+              className="group flex flex-col items-center justify-center p-2 text-center cursor-pointer"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-[#f26d21] text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform mb-1.5">
+                <Video className="w-6 h-6" />
+              </div>
+              <span className="text-[12px] font-normal text-[#232333]">Host</span>
+            </button>
+          </div>
+
+          <div className="text-center space-y-0.5 pt-1">
+            <div className="text-[13px] font-bold text-[#131619]">
+              Personal Meeting ID
+            </div>
+            <div className="flex items-center justify-center space-x-1.5 text-[#525266] text-[13px] font-normal">
+              <span>560 284 2970</span>
+              <button onClick={handleCopyPmi} className="text-[#747474] hover:text-[#0e71eb] cursor-pointer">
+                {copiedPmi ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Main Grid: Hero Actions & Meetings Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left 7 Columns: Quick Action Buttons & Promo Banner */}
-        <div className="lg:col-span-7 space-y-6">
-          {/* Quick Action Cards Container */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-2xs">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">
-              Quick Actions
+      {/* Middle Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        {/* Left Column: Recent Activity Box */}
+        <div className="lg:col-span-7 bg-white p-5 lg:p-6 rounded-2xl border border-slate-200/80 shadow-2xs min-h-[320px] flex flex-col justify-between">
+          <div>
+            <h2 className="text-[20px] font-bold text-[#131619] mb-4">
+              Recent activity
             </h2>
 
-            <div className="grid grid-cols-3 gap-4">
-              {/* 1. Schedule Button */}
-              <button
-                onClick={onOpenSchedule}
-                className="group flex flex-col items-center justify-center p-5 bg-blue-50/60 hover:bg-blue-100/60 border border-blue-100 rounded-2xl transition-all duration-150 active:scale-98"
-              >
-                <div className="w-12 h-12 rounded-xl bg-zoom-blue text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform mb-2.5">
-                  <span className="font-bold text-base leading-none">19</span>
-                </div>
-                <span className="text-xs font-bold text-slate-800">Schedule</span>
-              </button>
-
-              {/* 2. Join Button */}
-              <button
-                onClick={onOpenJoin}
-                className="group flex flex-col items-center justify-center p-5 bg-blue-50/60 hover:bg-blue-100/60 border border-blue-100 rounded-2xl transition-all duration-150 active:scale-98"
-              >
-                <div className="w-12 h-12 rounded-xl bg-zoom-blue text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform mb-2.5">
-                  <Plus className="w-6 h-6 stroke-[2.5]" />
-                </div>
-                <span className="text-xs font-bold text-slate-800">Join</span>
-              </button>
-
-              {/* 3. Host Button (Orange) */}
-              <button
-                onClick={handleInstantMeeting}
-                className="group flex flex-col items-center justify-center p-5 bg-orange-50/60 hover:bg-orange-100/60 border border-orange-100 rounded-2xl transition-all duration-150 active:scale-98"
-              >
-                <div className="w-12 h-12 rounded-xl bg-zoom-orange text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform mb-2.5">
-                  <Video className="w-6 h-6" />
-                </div>
-                <span className="text-xs font-bold text-slate-800">Host</span>
-              </button>
-            </div>
-
-            {/* Personal Meeting ID Copy Bar */}
-            <div className="mt-5 p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs">
-              <div className="flex items-center space-x-2 text-slate-700">
-                <span className="font-semibold text-slate-500">Personal Meeting ID:</span>
-                <span className="font-mono font-bold text-slate-900">
-                  {user?.personal_meeting_id ? `${user.personal_meeting_id.slice(0, 3)} ${user.personal_meeting_id.slice(3, 6)} ${user.personal_meeting_id.slice(6)}` : '699 772 3211'}
-                </span>
-              </div>
-              <button
-                onClick={handleCopyPmi}
-                className="flex items-center space-x-1 text-zoom-blue hover:text-zoom-blue-hover font-bold transition-colors"
-              >
-                {copiedId ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copiedId ? 'Copied' : 'Copy'}</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Workplace Pro Banner */}
-          <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 text-white p-6 rounded-2xl shadow-xs border border-blue-700 flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div className="space-y-2 text-center sm:text-left">
-              <span className="inline-block text-[10px] font-bold bg-blue-500/30 text-blue-200 border border-blue-400/40 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                Workplace Pro • Limited time offer!
-              </span>
-              <h3 className="text-base font-bold">Upgrade to Zoom Workplace Pro</h3>
-              <p className="text-xs text-blue-100 max-w-sm">
-                Get unlimited meeting duration, AI Companion automated summaries, and 5GB cloud recording storage.
-              </p>
-            </div>
-            <button className="whitespace-nowrap px-5 py-2.5 text-xs font-bold bg-white text-zoom-blue rounded-xl shadow-xs hover:bg-blue-50 transition-colors">
-              Get offer
-            </button>
-          </div>
-        </div>
-
-        {/* Right 5 Columns: Upcoming Meetings & Recent Activity */}
-        <div className="lg:col-span-5 space-y-6">
-          {/* Upcoming Meetings Card */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col h-full">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-bold text-slate-800">Meetings</h2>
-              <button className="text-xs font-semibold text-zoom-blue hover:underline">
-                Visit Meetings
-              </button>
-            </div>
-
-            {isLoadingMeetings ? (
-              <div className="py-8 text-center text-xs text-slate-400">Loading scheduled meetings...</div>
-            ) : upcoming.length > 0 ? (
-              <div className="space-y-3">
-                {upcoming.map((m) => (
-                  <div key={m.id} className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl space-y-2 hover:border-blue-200 transition-colors">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h4 className="text-xs font-bold text-slate-900">{m.title}</h4>
-                        <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
-                          <Clock className="w-3 h-3 text-slate-400" />
-                          <span>ID: {m.id}</span>
-                          {m.passcode && <span className="text-slate-400">• Passcode: {m.passcode}</span>}
-                        </p>
-                      </div>
-                      <span className="text-[10px] font-semibold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md">
-                        {m.status}
-                      </span>
+            {recent.length > 0 ? (
+              <div className="divide-y divide-slate-100 mt-2">
+                {paginatedRecent.map((m) => (
+                  <div key={m.id} className="py-3 flex items-center justify-between text-xs">
+                    <div>
+                      <h4 className="font-bold text-[#131619] text-[13px]">{m.title}</h4>
+                      <span className="text-[#747474] text-[12px]">Meeting ID: {m.id}</span>
                     </div>
-
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 text-xs">
-                      <button
-                        onClick={() => handleCopyInviteUrl(m.invite_url, m.id)}
-                        className="text-[11px] font-medium text-slate-600 hover:text-zoom-blue flex items-center space-x-1"
-                      >
-                        {copiedLink === m.id ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                        <span>{copiedLink === m.id ? 'Copied Link' : 'Copy Link'}</span>
-                      </button>
-
-                      <button
-                        onClick={() => onStartMeeting(m.id)}
-                        className="px-3 py-1 text-xs font-bold bg-zoom-blue hover:bg-zoom-blue-hover text-white rounded-lg shadow-2xs transition-colors"
-                      >
-                        Start
-                      </button>
-                    </div>
+                    <span className="text-[#747474] text-[12px]">Ended</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="py-8 text-center space-y-3">
-                <Box className="w-8 h-8 text-slate-300 mx-auto" />
-                <p className="text-xs font-medium text-slate-500">No Upcoming Meetings</p>
+              <div className="flex-1 flex flex-col items-center justify-center py-10 space-y-2">
+                <Blue3DBoxSVG />
+                <span className="text-[13px] font-bold text-[#232333] text-center pt-2 block">No recent activity</span>
               </div>
             )}
-
-            <div className="pt-4 mt-auto">
-              <button className="w-full py-2 text-xs font-semibold text-zoom-blue bg-blue-50 hover:bg-blue-100/80 rounded-xl transition-colors border border-blue-100">
-                Test Audio and Video
-              </button>
-            </div>
           </div>
+
+          {/* Recent Activity Pagination Controls */}
+          {recent.length > ITEMS_PER_PAGE && (
+            <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-[#747474]">
+              <span>Page {recentPage} of {totalRecentPages}</span>
+              <div className="flex items-center space-x-2">
+                <button
+                  disabled={recentPage === 1}
+                  onClick={() => setRecentPage(prev => Math.max(prev - 1, 1))}
+                  className="p-1 rounded-md border border-slate-200 hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button
+                  disabled={recentPage === totalRecentPages}
+                  onClick={() => setRecentPage(prev => Math.min(prev + 1, totalRecentPages))}
+                  className="p-1 rounded-md border border-slate-200 hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Right Column: Meetings Box */}
+        <div id="meetings" className="lg:col-span-5 bg-white p-5 lg:p-6 rounded-2xl border border-slate-200/80 shadow-2xs space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[20px] font-bold text-[#131619]">Meetings</h2>
+            <a href="#" className="text-[12px] font-normal text-[#0e71eb] hover:underline">
+              Visit Meetings
+            </a>
+          </div>
+
+          <div className="bg-[#f7f9fa] py-2 px-3.5 rounded-lg border border-slate-100 text-[13px] font-bold text-[#131619]">
+            Today
+          </div>
+
+          {isLoadingMeetings ? (
+            <div className="py-6 text-center text-xs text-[#747474]">Loading meetings...</div>
+          ) : upcoming.length > 0 ? (
+            <div className="space-y-3">
+              {paginatedUpcoming.map((m) => (
+                <div key={m.id} className="p-4 bg-white border border-slate-200/80 rounded-xl space-y-2 shadow-2xs">
+                  <div>
+                    <h4 className="text-[13px] font-bold text-[#0e71eb]">{m.title}</h4>
+                    <p className="text-[12px] font-bold text-[#131619] mt-0.5">4:00 PM - 4:40 PM</p>
+                    <p className="text-[12px] text-[#747474] font-normal mt-0.5">
+                      Meeting ID: {m.id}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center space-x-2 pt-1">
+                    <button
+                      onClick={() => onStartMeeting(m.id)}
+                      className="px-4 py-1.5 bg-[#0e71eb] hover:bg-[#0b5cbe] text-white font-semibold text-[12px] rounded-lg shadow-2xs transition-colors cursor-pointer"
+                    >
+                      Start
+                    </button>
+                    <button
+                      onClick={() => handleCopyInviteUrl(m.invite_url, m.id)}
+                      className="px-3.5 py-1.5 bg-[#e8f2ff] hover:bg-[#d8e8ff] text-[#0e71eb] font-semibold text-[12px] rounded-lg transition-colors flex items-center space-x-1.5 cursor-pointer"
+                    >
+                      {copiedLink === m.id ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-[#0e71eb]" />}
+                      <span>{copiedLink === m.id ? 'Copied' : 'Copy Invitation'}</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-4 bg-white border border-slate-200/80 rounded-xl space-y-2 shadow-2xs">
+              <div>
+                <h4 className="text-[13px] font-bold text-[#0e71eb]">My Meeting</h4>
+                <p className="text-[12px] font-bold text-[#131619] mt-0.5">4:00 PM - 4:40 PM</p>
+                <p className="text-[12px] text-[#747474] font-normal mt-0.5">
+                  Meeting ID: 845 4563 1899
+                </p>
+              </div>
+
+              <div className="flex items-center space-x-2 pt-1">
+                <button
+                  onClick={() => onStartMeeting('84545631899')}
+                  className="px-4 py-1.5 bg-[#0e71eb] hover:bg-[#0b5cbe] text-white font-semibold text-[12px] rounded-lg shadow-2xs transition-colors cursor-pointer"
+                >
+                  Start
+                </button>
+                <button
+                  onClick={() => handleCopyInviteUrl('http://localhost:3000/join?meetingId=84545631899', 'default')}
+                  className="px-3.5 py-1.5 bg-[#e8f2ff] hover:bg-[#d8e8ff] text-[#0e71eb] font-semibold text-[12px] rounded-lg transition-colors flex items-center space-x-1.5 cursor-pointer"
+                >
+                  <Copy className="w-3.5 h-3.5 text-[#0e71eb]" />
+                  <span>Copy Invitation</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Upcoming Meetings Pagination Controls */}
+          {upcoming.length > ITEMS_PER_PAGE && (
+            <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-[#747474]">
+              <span>Page {upcomingPage} of {totalUpcomingPages}</span>
+              <div className="flex items-center space-x-2">
+                <button
+                  disabled={upcomingPage === 1}
+                  onClick={() => setUpcomingPage(prev => Math.max(prev - 1, 1))}
+                  className="p-1 rounded-md border border-slate-200 hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button
+                  disabled={upcomingPage === totalUpcomingPages}
+                  onClick={() => setUpcomingPage(prev => Math.min(prev + 1, totalUpcomingPages))}
+                  className="p-1 rounded-md border border-slate-200 hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-transparent cursor-pointer"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Recent Activity Section */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-2xs">
-        <h2 className="text-sm font-bold text-slate-800 mb-4">Recent activity</h2>
-
-        {recent.length > 0 ? (
-          <div className="divide-y divide-slate-100">
-            {recent.map((m) => (
-              <div key={m.id} className="py-3 flex items-center justify-between text-xs">
-                <div>
-                  <h4 className="font-bold text-slate-800">{m.title}</h4>
-                  <span className="text-slate-400">Meeting ID: {m.id}</span>
-                </div>
-                <span className="text-slate-400 font-medium">Ended</span>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="py-8 text-center space-y-2 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-            <Box className="w-8 h-8 text-slate-300 mx-auto" />
-            <p className="text-xs font-medium text-slate-600">No recent activity</p>
-            <p className="text-[11px] text-slate-400">
-              Meetings, whiteboards, and recordings you create or interact with will appear here.
-            </p>
-          </div>
-        )}
-      </div>
+      {/* Floating Speech Bubble Icon */}
+      <button className="fixed bottom-6 right-6 w-11 h-11 rounded-full bg-[#0e71eb] text-white shadow-lg hover:bg-[#0b5cbe] transition-all flex items-center justify-center z-40 active:scale-95 cursor-pointer">
+        <MessageCircle className="w-5 h-5 fill-current text-white" />
+      </button>
     </div>
   );
 };
+

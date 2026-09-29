@@ -205,6 +205,10 @@ async def websocket_endpoint(
                     await manager.broadcast(meeting_id, {
                         "type": "FORCE_MUTE_AUDIO"
                     })
+                elif action == "END_MEETING_FOR_ALL":
+                    await manager.broadcast(meeting_id, {
+                        "type": "MEETING_ENDED_BY_HOST"
+                    })
                 elif action == "REMOVE_PARTICIPANT" and target_participant_id:
                     await manager.send_personal_message(meeting_id, target_participant_id, {
                         "type": "REMOVED_BY_HOST"

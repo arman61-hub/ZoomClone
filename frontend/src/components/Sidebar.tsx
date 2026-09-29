@@ -1,22 +1,8 @@
 'use client';
 
-import React from 'react';
-import {
-  Video,
-  Disc,
-  FileText,
-  Layout,
-  FileCode,
-  Paperclip,
-  CheckSquare,
-  User,
-  Settings,
-  Smartphone,
-  ShieldAlert,
-  HelpCircle,
-  ExternalLink,
-  Sparkles
-} from 'lucide-react';
+import React, { useState } from 'react';
+import Link from 'next/link';
+import { ExternalLink, ChevronDown, ChevronRight } from 'lucide-react';
 
 interface SidebarProps {
   activeTab: string;
@@ -24,113 +10,149 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
-  const products = [
-    { id: 'ai', label: 'AI Companion', icon: Sparkles, badge: 'NEW' },
-    { id: 'meetings', label: 'Meetings', icon: Video },
-    { id: 'recordings', label: 'Recordings', icon: Disc },
-    { id: 'summaries', label: 'Summaries', icon: FileText },
-    { id: 'whiteboards', label: 'Whiteboards', icon: Layout },
-    { id: 'notes', label: 'Notes', icon: FileCode },
-    { id: 'clips', label: 'Clips', icon: Paperclip },
-    { id: 'tasks', label: 'Tasks', icon: CheckSquare },
-  ];
-
-  const account = [
-    { id: 'profile', label: 'Profile', icon: User },
-    { id: 'settings', label: 'Settings', icon: Settings },
-    { id: 'devices', label: 'Personal Devices', icon: Smartphone },
-    { id: 'privacy', label: 'Data & Privacy', icon: ShieldAlert },
-  ];
+  const [myAccountOpen, setMyAccountOpen] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
 
   return (
-    <aside className="w-60 bg-slate-50 border-r border-slate-200 flex flex-col justify-between py-5 px-3 min-h-[calc(100vh-4rem)]">
-      <div className="space-y-6">
-        {/* Products Section */}
-        <div>
-          <h3 className="px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-            My Products
-          </h3>
-          <ul className="space-y-0.5">
-            {products.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              return (
-                <li key={item.id}>
-                  <button
-                    onClick={() => setActiveTab(item.id)}
-                    className={`w-full flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-all ${
-                      isActive
-                        ? 'bg-blue-50 text-zoom-blue border-l-3 border-zoom-blue shadow-2xs font-bold'
-                        : 'text-slate-700 hover:bg-slate-200/60 hover:text-slate-900'
-                    }`}
-                  >
-                    <div className="flex items-center space-x-2.5">
-                      <Icon className={`w-4 h-4 ${isActive ? 'text-zoom-blue' : 'text-slate-500'}`} />
-                      <span>{item.label}</span>
-                    </div>
-                    {item.badge && (
-                      <span className="text-[9px] font-bold bg-blue-100 text-zoom-blue px-1.5 py-0.5 rounded-full">
-                        {item.badge}
-                      </span>
-                    )}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-
-        {/* Account Section */}
-        <div>
-          <h3 className="px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-            My Account
-          </h3>
-          <ul className="space-y-0.5">
-            {account.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              return (
-                <li key={item.id}>
-                  <button
-                    onClick={() => setActiveTab(item.id)}
-                    className={`w-full flex items-center space-x-2.5 px-3 py-2 text-xs font-semibold rounded-lg transition-all ${
-                      isActive
-                        ? 'bg-blue-50 text-zoom-blue border-l-3 border-zoom-blue shadow-2xs font-bold'
-                        : 'text-slate-700 hover:bg-slate-200/60 hover:text-slate-900'
-                    }`}
-                  >
-                    <Icon className={`w-4 h-4 ${isActive ? 'text-zoom-blue' : 'text-slate-500'}`} />
-                    <span>{item.label}</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+    <aside className="w-52 bg-[#f7f9fa] border-r border-slate-200/70 flex flex-col py-3 px-3 text-[13px] font-sans select-none overflow-y-auto shrink-0 min-h-[calc(100vh-3.5rem)]">
+      {/* Home item */}
+      <div className="mb-2">
+        <Link
+          href="/"
+          className="w-full flex items-center px-2 py-1.5 font-semibold text-[#0e71eb] text-[14px] hover:underline"
+        >
+          Home
+        </Link>
       </div>
 
-      {/* Support Section */}
-      <div className="pt-4 border-t border-slate-200">
-        <h3 className="px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-          Support
-        </h3>
-        <ul className="space-y-1 text-xs text-slate-600">
-          <li>
-            <a
-              href="https://support.zoom.us"
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center justify-between px-3 py-1.5 rounded-md hover:bg-slate-200/60 hover:text-slate-900 transition-colors"
-            >
-              <div className="flex items-center space-x-2">
-                <HelpCircle className="w-4 h-4 text-slate-500" />
-                <span>Zoom Learning Center</span>
-              </div>
-              <ExternalLink className="w-3 h-3 text-slate-400" />
-            </a>
+      {/* My Products Section */}
+      <div className="space-y-0.5 mb-3">
+        <span className="px-2 text-[12px] font-normal text-[#747474] block py-1">
+          My Products
+        </span>
+        <ul className="space-y-0.5 text-[#232333]">
+          <li className="flex items-center justify-between px-2 py-1.5 hover:bg-[#ebf4fe] rounded-md cursor-pointer transition-colors">
+            <span>AI</span>
+            <div className="flex items-center space-x-1">
+              <span className="text-[10px] font-semibold bg-[#e8f2ff] text-[#0e71eb] px-1.5 py-0.5 rounded">New</span>
+              <ExternalLink className="w-3 h-3 text-[#747474]" />
+            </div>
+          </li>
+          <li className="px-2 py-1.5 hover:bg-[#ebf4fe] rounded-md cursor-pointer transition-colors font-medium text-[#131619]">
+            <Link href="/#meetings" className="block w-full">Meetings</Link>
+          </li>
+          <li className="px-2 py-1.5 hover:bg-[#ebf4fe] rounded-md cursor-pointer transition-colors">Recordings</li>
+          <li className="px-2 py-1.5 hover:bg-[#ebf4fe] rounded-md cursor-pointer transition-colors">Summaries</li>
+          <li className="flex items-center justify-between px-2 py-1.5 hover:bg-[#ebf4fe] rounded-md cursor-pointer transition-colors">
+            <span>Hub</span>
+            <div className="flex items-center space-x-1">
+              <span className="text-[10px] font-semibold bg-[#e8f2ff] text-[#0e71eb] px-1.5 py-0.5 rounded">New</span>
+              <ExternalLink className="w-3 h-3 text-[#747474]" />
+            </div>
+          </li>
+          <li className="flex items-center justify-between px-2 py-1.5 hover:bg-[#ebf4fe] rounded-md cursor-pointer transition-colors">
+            <span>Whiteboards</span>
+            <ExternalLink className="w-3 h-3 text-[#747474]" />
+          </li>
+          <li className="px-2 py-1.5 hover:bg-[#ebf4fe] rounded-md cursor-pointer transition-colors">Notes</li>
+          <li className="flex items-center justify-between px-2 py-1.5 hover:bg-[#ebf4fe] rounded-md cursor-pointer transition-colors">
+            <span>Clips</span>
+            <ExternalLink className="w-3 h-3 text-[#747474]" />
+          </li>
+          <li className="flex items-center justify-between px-2 py-1.5 hover:bg-[#ebf4fe] rounded-md cursor-pointer transition-colors">
+            <span>Canvas</span>
+            <ExternalLink className="w-3 h-3 text-[#747474]" />
+          </li>
+          <li className="flex items-center justify-between px-2 py-1.5 hover:bg-[#ebf4fe] rounded-md cursor-pointer transition-colors">
+            <span>Paper</span>
+            <ExternalLink className="w-3 h-3 text-[#747474]" />
+          </li>
+          <li className="flex items-center justify-between px-2 py-1.5 hover:bg-[#ebf4fe] rounded-md cursor-pointer transition-colors">
+            <span>Sheets</span>
+            <ExternalLink className="w-3 h-3 text-[#747474]" />
+          </li>
+          <li className="flex items-center justify-between px-2 py-1.5 hover:bg-[#ebf4fe] rounded-md cursor-pointer transition-colors">
+            <span>Slides</span>
+            <ExternalLink className="w-3 h-3 text-[#747474]" />
+          </li>
+          <li className="flex items-center justify-between px-2 py-1.5 hover:bg-[#ebf4fe] rounded-md cursor-pointer transition-colors">
+            <span>Tasks</span>
+            <ExternalLink className="w-3 h-3 text-[#747474]" />
+          </li>
+          <li className="flex items-center justify-between px-2 py-1.5 hover:bg-[#ebf4fe] rounded-md cursor-pointer transition-colors text-[#0e71eb] font-normal">
+            <span>Scheduler</span>
+            <ExternalLink className="w-3 h-3 text-[#0e71eb]" />
+          </li>
+          <li className="px-2 py-1.5 text-[#747474] hover:text-[#131619] cursor-pointer pt-2 text-[12px]">
+            Discover More Products
           </li>
         </ul>
+      </div>
+
+      {/* My Account Dropdown Accordion */}
+      <div className="space-y-0.5 mb-1.5">
+        <button
+          onClick={() => setMyAccountOpen(!myAccountOpen)}
+          className="w-full flex items-center space-x-1.5 px-2 py-1 text-[12px] font-normal text-[#747474] hover:text-[#131619] transition-colors"
+        >
+          {myAccountOpen ? <ChevronDown className="w-3 h-3 text-[#747474]" /> : <ChevronRight className="w-3 h-3 text-[#747474]" />}
+          <span>My Account</span>
+        </button>
+        {myAccountOpen && (
+          <ul className="space-y-0.5 mt-0.5 text-[#232333] pl-3">
+            <li className="px-2 py-1 hover:bg-[#ebf4fe] rounded-md cursor-pointer">Profile</li>
+            <li className="px-2 py-1 hover:bg-[#ebf4fe] rounded-md cursor-pointer">Settings</li>
+            <li className="px-2 py-1 hover:bg-[#ebf4fe] rounded-md cursor-pointer">Personal Devices</li>
+            <li className="px-2 py-1 hover:bg-[#ebf4fe] rounded-md cursor-pointer">Personal Contacts</li>
+            <li className="px-2 py-1 hover:bg-[#ebf4fe] rounded-md cursor-pointer">Data &amp; Privacy</li>
+          </ul>
+        )}
+      </div>
+
+      {/* Admin Dropdown Accordion */}
+      <div className="space-y-0.5 mb-1.5">
+        <button
+          onClick={() => setAdminOpen(!adminOpen)}
+          className="w-full flex items-center space-x-1.5 px-2 py-1 text-[12px] font-normal text-[#747474] hover:text-[#131619] transition-colors"
+        >
+          {adminOpen ? <ChevronDown className="w-3 h-3 text-[#747474]" /> : <ChevronRight className="w-3 h-3 text-[#747474]" />}
+          <span>Admin</span>
+        </button>
+        {adminOpen && (
+          <ul className="space-y-0.5 mt-0.5 text-[#232333] pl-3">
+            <li className="px-2 py-1 hover:bg-[#ebf4fe] rounded-md cursor-pointer">Plans and Billing</li>
+            <li className="px-2 py-1 hover:bg-[#ebf4fe] rounded-md cursor-pointer">User Management</li>
+            <li className="px-2 py-1 hover:bg-[#ebf4fe] rounded-md cursor-pointer">Account Management</li>
+            <li className="px-2 py-1 hover:bg-[#ebf4fe] rounded-md cursor-pointer">Advanced</li>
+          </ul>
+        )}
+      </div>
+
+      {/* Support Dropdown Accordion */}
+      <div className="space-y-0.5">
+        <button
+          onClick={() => setSupportOpen(!supportOpen)}
+          className="w-full flex items-center space-x-1.5 px-2 py-1 text-[12px] font-normal text-[#747474] hover:text-[#131619] transition-colors"
+        >
+          {supportOpen ? <ChevronDown className="w-3 h-3 text-[#747474]" /> : <ChevronRight className="w-3 h-3 text-[#747474]" />}
+          <span>Support</span>
+        </button>
+        {supportOpen && (
+          <ul className="space-y-0.5 mt-0.5 text-[#232333] pl-3">
+            <li className="flex items-center justify-between px-2 py-1 hover:bg-[#ebf4fe] rounded-md cursor-pointer">
+              <span>Zoom Learning Center</span>
+              <ExternalLink className="w-3 h-3 text-[#747474]" />
+            </li>
+            <li className="flex items-center justify-between px-2 py-1 hover:bg-[#ebf4fe] rounded-md cursor-pointer">
+              <span>Video Tutorials</span>
+              <ExternalLink className="w-3 h-3 text-[#747474]" />
+            </li>
+            <li className="px-2 py-1 hover:bg-[#ebf4fe] rounded-md cursor-pointer">Knowledge Base</li>
+          </ul>
+        )}
       </div>
     </aside>
   );
 };
+

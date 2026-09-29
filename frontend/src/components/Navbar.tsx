@@ -1,14 +1,15 @@
 'use client';
 
 import React from 'react';
-import { Search, Bell, ChevronDown, Video } from 'lucide-react';
+import Link from 'next/link';
+import { Search, ChevronDown } from 'lucide-react';
 import { UserProfile } from '@/lib/api';
 
 interface NavbarProps {
   user: UserProfile | null;
-  onJoinClick: () => void;
-  onScheduleClick: () => void;
-  onHostClick: () => void;
+  onJoinClick?: () => void;
+  onScheduleClick?: () => void;
+  onHostClick?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -18,84 +19,67 @@ export const Navbar: React.FC<NavbarProps> = ({
   onHostClick,
 }) => {
   return (
-    <header className="sticky top-0 z-40 w-full bg-white border-b border-slate-200 h-16 px-4 lg:px-8 flex items-center justify-between shadow-xs">
-      {/* Left section: Zoom logo & Main nav links */}
-      <div className="flex items-center space-x-6">
-        <a href="/" className="flex items-center space-x-1.5 focus:outline-none">
-          <svg className="w-24 h-6 text-zoom-blue fill-current" viewBox="0 0 120 30" xmlns="http://www.w3.org/2000/svg">
-            <path d="M14.5 5.5C8.98 5.5 4.5 9.98 4.5 15.5C4.5 21.02 8.98 25.5 14.5 25.5C20.02 25.5 24.5 21.02 24.5 15.5C24.5 9.98 20.02 5.5 14.5 5.5ZM14.5 21.5C11.19 21.5 8.5 18.81 8.5 15.5C8.5 12.19 11.19 9.5 14.5 9.5C17.81 9.5 20.5 12.19 20.5 15.5C20.5 18.81 17.81 21.5 14.5 21.5Z" />
-            <text x="32" y="22" fontFamily="Inter, sans-serif" fontSize="22" fontWeight="800" fill="#0E71EB">zoom</text>
-          </svg>
+    <header className="sticky top-0 z-40 w-full bg-white border-b border-slate-200/80 shadow-2xs font-sans text-xs select-none">
+      {/* Top Black/Navy Utility Bar matching Zoom Website */}
+      <div className="bg-[#000529] text-slate-300 py-1.5 px-4 lg:px-10 flex items-center justify-end space-x-6 text-[11px] font-normal border-b border-slate-900">
+        <button className="flex items-center space-x-1 hover:text-white transition-colors cursor-pointer">
+          <Search className="w-3 h-3 text-slate-300" />
+          <span>Search</span>
+        </button>
+        <a href="https://support.zoom.us" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">
+          Support
         </a>
-
-        <nav className="hidden md:flex items-center space-x-5 text-sm font-medium text-slate-700">
-          <a href="#" className="hover:text-zoom-blue transition-colors">Products</a>
-          <a href="#" className="hover:text-zoom-blue transition-colors">Solutions</a>
-          <a href="#" className="hover:text-zoom-blue transition-colors">Resources</a>
-          <a href="#" className="hover:text-zoom-blue transition-colors">Plans & Pricing</a>
-        </nav>
+        <span className="font-sans text-slate-300">0008000503335</span>
+        <a href="#" className="hover:text-white transition-colors">Contact Sales</a>
+        <a href="#" className="hover:text-white transition-colors">Request a Demo</a>
       </div>
 
-      {/* Center Search Bar */}
-      <div className="hidden lg:flex items-center flex-1 max-w-xs mx-6">
-        <div className="relative w-full">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search meetings, contacts, tools..."
-            className="w-full pl-9 pr-4 py-1.5 text-xs bg-slate-100 border border-transparent rounded-lg focus:bg-white focus:border-zoom-blue focus:outline-none transition-all"
-          />
+      {/* Main White Header Bar matching Zoom Website */}
+      <div className="h-14 px-4 lg:px-10 flex items-center justify-between">
+        {/* Left: Zoom Logo & Primary Nav Links */}
+        <div className="flex items-center space-x-7">
+          <Link href="/" className="flex items-center focus:outline-none">
+            <span className="text-[26px] font-extrabold text-[#0e71eb] tracking-tighter font-sans lowercase">zoom</span>
+          </Link>
+
+          <nav className="hidden md:flex items-center space-x-5 text-[13px] font-normal text-[#525266]">
+            <a href="#" className="hover:text-[#0e71eb] transition-colors">Products</a>
+            <a href="#" className="hover:text-[#0e71eb] transition-colors">Solutions</a>
+            <a href="#" className="hover:text-[#0e71eb] transition-colors">Resources</a>
+            <a href="#" className="hover:text-[#0e71eb] transition-colors">Plans &amp; Pricing</a>
+          </nav>
         </div>
-      </div>
 
-      {/* Right section: Quick actions, notifications, User Profile */}
-      <div className="flex items-center space-x-4">
-        <button
-          onClick={onScheduleClick}
-          className="text-xs font-semibold text-slate-700 hover:text-zoom-blue px-2.5 py-1.5 rounded-md hover:bg-slate-50 transition-colors"
-        >
-          Schedule
-        </button>
+        {/* Right Utility Links matching Zoom Website */}
+        <div className="flex items-center space-x-5 text-[13px] font-normal text-[#232333]">
+          <Link href="/schedule" className="hover:text-[#0e71eb] transition-colors">
+            Schedule
+          </Link>
 
-        <button
-          onClick={onJoinClick}
-          className="text-xs font-semibold text-slate-700 hover:text-zoom-blue px-2.5 py-1.5 rounded-md hover:bg-slate-50 transition-colors"
-        >
-          Join
-        </button>
+          <Link href="/join" className="hover:text-[#0e71eb] transition-colors">
+            Join
+          </Link>
 
-        <button
-          onClick={onHostClick}
-          className="flex items-center space-x-1 text-xs font-semibold text-slate-700 hover:text-zoom-blue px-2.5 py-1.5 rounded-md hover:bg-slate-50 transition-colors"
-        >
-          <Video className="w-3.5 h-3.5 text-zoom-orange mr-0.5" />
-          <span>Host</span>
-          <ChevronDown className="w-3 h-3 ml-0.5" />
-        </button>
+          <button
+            onClick={onHostClick}
+            className="flex items-center space-x-1 hover:text-[#0e71eb] transition-colors cursor-pointer"
+          >
+            <span>Host</span>
+            <ChevronDown className="w-3.5 h-3.5 text-[#747474]" />
+          </button>
 
-        <div className="h-4 w-px bg-slate-200" />
+          <button className="flex items-center space-x-1 hover:text-[#0e71eb] transition-colors cursor-pointer">
+            <span>Web App</span>
+            <ChevronDown className="w-3.5 h-3.5 text-[#747474]" />
+          </button>
 
-        <button className="text-slate-500 hover:text-slate-800 p-1.5 rounded-full hover:bg-slate-100 transition-colors">
-          <Bell className="w-4 h-4" />
-        </button>
-
-        {/* User Profile Avatar Circle */}
-        <div className="flex items-center space-x-2 pl-1 cursor-pointer">
-          <div className="relative flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-zoom-blue font-bold text-xs border border-blue-200">
-            {user ? user.name.split(' ').map(n => n[0]).join('') : 'JT'}
-            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full" />
-          </div>
-
-          <div className="hidden sm:flex flex-col text-left">
-            <span className="text-xs font-semibold text-slate-800 leading-none">
-              {user ? user.name : 'Arman'}
-            </span>
-            <span className="text-[10px] text-slate-500 font-medium leading-tight mt-0.5">
-              {user ? user.plan_type : 'Workplace Basic'}
-            </span>
+          {/* User Profile Avatar Pill matching crimson red badge in screenshot */}
+          <div className="w-7 h-7 rounded-full bg-[#d92138] text-white flex items-center justify-center font-semibold text-[12px] shadow-2xs">
+            {user ? `${user.name[0]?.toUpperCase()}.` : 'A.'}
           </div>
         </div>
       </div>
     </header>
   );
 };
+
