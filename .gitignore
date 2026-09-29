@@ -1,0 +1,55 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+backend/venv/
+venv/
+env/
+ENV/
+
+# Next.js Build Output & Cache
+frontend/.next/
+frontend/out/
+frontend/build/
+.next/
+.vercel
+.cache/
+
+# Python Cache & Artifacts
+__pycache__/
+backend/app/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.python-version
+.pytest_cache/
+
+# Database Files
+*.db
+*.sqlite
+*.sqlite3
+backend/zoom_clone.db
+
+# Logs & Temporary Files
+*.log
+*.tmp
+scratch/
+
+# Internal Directives & IDE Configurations
+directives/
+.vscode/
+.idea/
+pyrightconfig.json
+
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
