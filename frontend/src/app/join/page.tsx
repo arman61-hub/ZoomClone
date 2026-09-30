@@ -14,7 +14,7 @@ function JoinMeetingContent() {
   const routeId = (params?.id as string) || '';
   const meetingIdParam = routeId || searchParams.get('meetingId') || searchParams.get('id') || '';
   const isHostParam = searchParams.get('isHost') === 'true' || searchParams.get('mode') === 'host';
-  const pwdParam = searchParams.get('pwd') || searchParams.get('passcode') || '';
+  const pwdParam = searchParams.get('passcode') || searchParams.get('pwd') || searchParams.get('pass') || '';
   const hasPasscodeInUrl = Boolean(pwdParam.trim());
 
   const [meetingIdInput, setMeetingIdInput] = useState(meetingIdParam);

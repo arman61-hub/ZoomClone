@@ -154,8 +154,8 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
   const [copyNotification, setCopyNotification] = useState(false);
 
   const handleCopyInviteLink = () => {
-    const pwdQuery = passcode ? `&pwd=${encodeURIComponent(passcode)}` : '';
-    const inviteUrl = `${window.location.origin}/join?meetingId=${encodeURIComponent(meetingId)}${pwdQuery}`;
+    const passQuery = passcode ? `&passcode=${encodeURIComponent(passcode)}` : '';
+    const inviteUrl = `${window.location.origin}/join?meetingId=${encodeURIComponent(meetingId)}${passQuery}`;
     navigator.clipboard.writeText(inviteUrl);
     setCopyNotification(true);
     setTimeout(() => setCopyNotification(false), 2500);

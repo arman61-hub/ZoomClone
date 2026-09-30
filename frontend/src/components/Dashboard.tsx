@@ -51,6 +51,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onStartMeeting,
 }) => {
   const [copiedPmi, setCopiedPmi] = useState(false);
+  const [copiedPasscode, setCopiedPasscode] = useState(false);
   const [selectedMeetingForCopy, setSelectedMeetingForCopy] = useState<any>(null);
   const [upcoming, setUpcoming] = useState<Meeting[]>([]);
   const [recent, setRecent] = useState<Meeting[]>([]);
@@ -84,11 +85,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   const handleCopyPmi = () => {
     const pmi = user?.personal_meeting_id || '3527955122';
-    const passcode = user?.pmi_passcode || '0bfJhU';
+    const passcode = user?.pmi_passcode || '352795';
     const inviteUrl = `${window.location.origin}/join?meetingId=${pmi}&passcode=${passcode}`;
     navigator.clipboard.writeText(inviteUrl);
     setCopiedPmi(true);
     setTimeout(() => setCopiedPmi(false), 2000);
+  };
+
+  const handleCopyPasscode = () => {
+    const passcode = user?.pmi_passcode || '352795';
+    navigator.clipboard.writeText(passcode);
+    setCopiedPasscode(true);
+    setTimeout(() => setCopiedPasscode(false), 2000);
   };
 
   const openCopyModalForMeeting = (m: any) => {
@@ -196,17 +204,35 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </button>
           </div>
 
-          <div className="text-center space-y-1 pt-1">
-            <div className="text-[13px] font-bold text-[#131619]">
-              Personal Meeting ID
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between px-3">
+            {/* Left side: Personal Meeting ID */}
+            <div className="text-left space-y-0.5">
+              <div className="text-[12px] font-bold text-[#131619]">
+                Personal Meeting ID
+              </div>
+              <div className="text-[13px] font-normal text-[#525266] flex items-center space-x-1.5">
+                <span>
+                  {user?.personal_meeting_id
+                    ? user.personal_meeting_id.replace(/[- ]/g, '').replace(/^(\d{3})(\d{3})(\d{4})$/, '$1 $2 $3')
+                    : '352 795 5122'}
+                </span>
+                <button onClick={handleCopyPmi} title="Copy Invitation Link" className="text-[#747474] hover:text-[#0e71eb] cursor-pointer ml-1">
+                  {copiedPmi ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                </button>
+              </div>
             </div>
-            <div className="flex items-center justify-center space-x-2 text-[#525266] text-[13px] font-normal">
-              <span className="font-bold text-[#131619]">352 795 5122</span>
-              <span className="text-slate-300">|</span>
-              <span className="text-[#525266]">Passcode: <span className="font-bold text-[#131619]">{user?.pmi_passcode || '0bfJhU'}</span></span>
-              <button onClick={handleCopyPmi} className="text-[#747474] hover:text-[#0e71eb] cursor-pointer ml-1">
-                {copiedPmi ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-              </button>
+
+            {/* Right side: Passcode */}
+            <div className="text-right space-y-0.5">
+              <div className="text-[12px] font-bold text-[#131619]">
+                Passcode:
+              </div>
+              <div className="text-[13px] font-normal text-[#525266] flex items-center justify-end space-x-1.5">
+                <span>{user?.pmi_passcode || '352795'}</span>
+                <button onClick={handleCopyPasscode} title="Copy Passcode" className="text-[#747474] hover:text-[#0e71eb] cursor-pointer ml-1">
+                  {copiedPasscode ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                </button>
+              </div>
             </div>
           </div>
         </div>

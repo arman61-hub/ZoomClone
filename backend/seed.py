@@ -37,20 +37,19 @@ def seed_database():
         )
 
         # Seed Past Recent Meetings
-        recent_1 = models.Meeting(
+        pmi_meeting = models.Meeting(
             id="352-795-5122",
             host_id=user.id,
             title="Arman Redhu's Personal Meeting Room",
             description="Default personal meeting space.",
-            status="ended",
+            status="active",
             passcode="352795",
-            scheduled_start=now - timedelta(days=2),
-            duration_minutes=30,
-            ended_at=now - timedelta(days=2) + timedelta(minutes=30)
+            scheduled_start=now,
+            duration_minutes=1440
         )
 
         # Add meetings to DB if not already present
-        for m in [upcoming_1, upcoming_2, recent_1]:
+        for m in [upcoming_1, upcoming_2, pmi_meeting]:
             existing = db.query(models.Meeting).filter(models.Meeting.id == m.id).first()
             if not existing:
                 db.add(m)
