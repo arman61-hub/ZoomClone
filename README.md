@@ -4,7 +4,7 @@ A high-performance, feature-complete video conferencing web application clone of
 
 ---
 
-## 🌟 Key Features
+## Key Features
 
 ### 1. Landing Dashboard & Personal Meeting Room
 * **Authentic Zoom Visual UI**: Matches Zoom's official header bar (`#0E71EB` logo, search bar, profile avatar pill for **Arman Redhu**), left navigation rail, and dark slate navy footer (`#1A1E29`).
@@ -78,7 +78,7 @@ A high-performance, feature-complete video conferencing web application clone of
 
 ---
 
-## 🛠️ Technical Stack
+## Technical Stack
 
 | Layer | Technology |
 | :--- | :--- |
@@ -91,7 +91,7 @@ A high-performance, feature-complete video conferencing web application clone of
 
 ---
 
-## 📊 Database Schema Design (SQLite)
+## Database Schema Design (SQLite)
 
 The database (`zoom_clone.db`) uses SQLAlchemy ORM:
 
@@ -114,7 +114,7 @@ The database (`zoom_clone.db`) uses SQLAlchemy ORM:
 
 ---
 
-## 🚀 Setup & Execution Instructions
+## Setup & Execution Instructions
 
 ### Prerequisites
 * **Node.js**: v18+ and `npm`
@@ -156,7 +156,7 @@ npm run dev
 
 ---
 
-## 📌 Main API Endpoints
+## Main API Endpoints
 
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
@@ -170,9 +170,8 @@ npm run dev
 
 ---
 
-## 💡 Key Design & Implementation Rules
+## Key Design & Implementation Rules
 1. **Default Account**: Automatically authenticates user **Arman Redhu** (`arman@zoomclone.local`, Plan: `Workplace Basic`).
 2. **Personal Meeting ID (PMI)**: Standardized to `352 795 5122` (`352-795-5122`) with passcode `352795`.
 3. **Strict Visual Fidelity**: Exact Zoom color tokens (`#0E71EB` primary blue, `#F26D21` orange host button, `#1A1C23` dark room, `#1A1E29` footer).
 4. **No Build Overhead**: Developed and optimized for real-time Next.js dev server execution.
-
