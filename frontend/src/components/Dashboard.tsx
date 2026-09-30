@@ -42,6 +42,8 @@ const Blue3DBoxSVG = () => (
   </svg>
 );
 
+import { CopyInvitationModal } from '@/components/CopyInvitationModal';
+
 export const Dashboard: React.FC<DashboardProps> = ({
   user,
   onOpenJoin,
@@ -49,12 +51,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onStartMeeting,
 }) => {
   const [copiedPmi, setCopiedPmi] = useState(false);
-  const [copiedLink, setCopiedLink] = useState<string | null>(null);
+  const [selectedMeetingForCopy, setSelectedMeetingForCopy] = useState<any>(null);
   const [upcoming, setUpcoming] = useState<Meeting[]>([]);
   const [recent, setRecent] = useState<Meeting[]>([]);
   const [isLoadingMeetings, setIsLoadingMeetings] = useState(true);
 
-  // Pagination states (3 items per page)
+  // Pagination states (2 items per page)
   const [upcomingPage, setUpcomingPage] = useState(1);
   const [recentPage, setRecentPage] = useState(1);
   const ITEMS_PER_PAGE = 2;
@@ -80,37 +82,46 @@ export const Dashboard: React.FC<DashboardProps> = ({
   }, []);
 
   const handleCopyPmi = () => {
-    const pmi = user?.personal_meeting_id || '5602842970';
+    const pmi = user?.personal_meeting_id || '3527955122';
     const formatted = `${pmi.slice(0, 3)} ${pmi.slice(3, 6)} ${pmi.slice(6)}`;
     navigator.clipboard.writeText(formatted);
     setCopiedPmi(true);
     setTimeout(() => setCopiedPmi(false), 2000);
   };
 
-  const handleCopyInviteUrl = (url: string, id: string) => {
-    navigator.clipboard.writeText(url);
-    setCopiedLink(id);
-    setTimeout(() => setCopiedLink(null), 2000);
+  const openCopyModalForMeeting = (m: any) => {
+    setSelectedMeetingForCopy({
+      id: m.id,
+      title: m.title || 'My Meeting',
+      passcode: m.passcode || '0bfJhU',
+      time_str: 'Sep 30, 2026 01:00 AM Pacific Time (US and Canada)',
+      hostName: user?.name || 'Arman Redhu'
+    });
   };
 
   const handleInstantMeeting = async () => {
     try {
       const newMeeting = await createInstantMeeting();
-      onStartMeeting(newMeeting.id);
+      window.location.href = `/wc/${encodeURIComponent(newMeeting.id)}/join?isHost=true`;
     } catch (err) {
       console.error('Failed to launch instant meeting:', err);
+      window.location.href = `/wc/3527955122/join?isHost=true`;
     }
   };
 
+  // Deduplicated lists by ID
+  const uniqueUpcoming = upcoming.filter((m, index, self) => index === self.findIndex((t) => t.id === m.id));
+  const uniqueRecent = recent.filter((m, index, self) => index === self.findIndex((t) => t.id === m.id));
+
   // Paginated Slices
-  const totalUpcomingPages = Math.ceil(upcoming.length / ITEMS_PER_PAGE) || 1;
-  const paginatedUpcoming = upcoming.slice(
+  const totalUpcomingPages = Math.ceil(uniqueUpcoming.length / ITEMS_PER_PAGE) || 1;
+  const paginatedUpcoming = uniqueUpcoming.slice(
     (upcomingPage - 1) * ITEMS_PER_PAGE,
     upcomingPage * ITEMS_PER_PAGE
   );
 
-  const totalRecentPages = Math.ceil(recent.length / ITEMS_PER_PAGE) || 1;
-  const paginatedRecent = recent.slice(
+  const totalRecentPages = Math.ceil(uniqueRecent.length / ITEMS_PER_PAGE) || 1;
+  const paginatedRecent = uniqueRecent.slice(
     (recentPage - 1) * ITEMS_PER_PAGE,
     recentPage * ITEMS_PER_PAGE
   );
@@ -130,7 +141,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
             <div>
               <h1 className="text-[22px] font-bold text-[#131619] tracking-tight leading-tight">
-                {user ? user.name : 'Arman'} .
+                {user ? user.name : 'Arman Redhu'}
               </h1>
               <p className="text-[#747474] text-[13px] font-normal mt-0.5">
                 Plan: <span className="font-bold text-[#000529]">{user?.plan_type || 'Workplace Basic'}</span>
@@ -188,7 +199,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               Personal Meeting ID
             </div>
             <div className="flex items-center justify-center space-x-1.5 text-[#525266] text-[13px] font-normal">
-              <span>560 284 2970</span>
+              <span>352 795 5122</span>
               <button onClick={handleCopyPmi} className="text-[#747474] hover:text-[#0e71eb] cursor-pointer">
                 {copiedPmi ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
               </button>
@@ -271,7 +282,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <div key={m.id} className="p-4 bg-white border border-slate-200/80 rounded-xl space-y-2 shadow-2xs">
                   <div>
                     <h4 className="text-[13px] font-bold text-[#0e71eb]">{m.title}</h4>
-                    <p className="text-[12px] font-bold text-[#131619] mt-0.5">4:00 PM - 4:40 PM</p>
+                    <p className="text-[12px] font-bold text-[#131619] mt-0.5">1:00 AM - 1:40 AM</p>
                     <p className="text-[12px] text-[#747474] font-normal mt-0.5">
                       Meeting ID: {m.id}
                     </p>
@@ -279,17 +290,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
                   <div className="flex items-center space-x-2 pt-1">
                     <button
-                      onClick={() => onStartMeeting(m.id)}
+                      onClick={() => window.location.href = `/wc/${encodeURIComponent(m.id)}/join?isHost=true`}
                       className="px-4 py-1.5 bg-[#0e71eb] hover:bg-[#0b5cbe] text-white font-semibold text-[12px] rounded-lg shadow-2xs transition-colors cursor-pointer"
                     >
                       Start
                     </button>
                     <button
-                      onClick={() => handleCopyInviteUrl(m.invite_url, m.id)}
+                      onClick={() => openCopyModalForMeeting(m)}
                       className="px-3.5 py-1.5 bg-[#e8f2ff] hover:bg-[#d8e8ff] text-[#0e71eb] font-semibold text-[12px] rounded-lg transition-colors flex items-center space-x-1.5 cursor-pointer"
                     >
-                      {copiedLink === m.id ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-[#0e71eb]" />}
-                      <span>{copiedLink === m.id ? 'Copied' : 'Copy Invitation'}</span>
+                      <Copy className="w-3.5 h-3.5 text-[#0e71eb]" />
+                      <span>Copy Invitation</span>
                     </button>
                   </div>
                 </div>
@@ -299,21 +310,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className="p-4 bg-white border border-slate-200/80 rounded-xl space-y-2 shadow-2xs">
               <div>
                 <h4 className="text-[13px] font-bold text-[#0e71eb]">My Meeting</h4>
-                <p className="text-[12px] font-bold text-[#131619] mt-0.5">4:00 PM - 4:40 PM</p>
+                <p className="text-[12px] font-bold text-[#131619] mt-0.5">1:00 AM - 1:40 AM</p>
                 <p className="text-[12px] text-[#747474] font-normal mt-0.5">
-                  Meeting ID: 845 4563 1899
+                  Meeting ID: 861 5843 0811
                 </p>
               </div>
 
               <div className="flex items-center space-x-2 pt-1">
                 <button
-                  onClick={() => onStartMeeting('84545631899')}
+                  onClick={() => window.location.href = '/wc/86158430811/join?isHost=true'}
                   className="px-4 py-1.5 bg-[#0e71eb] hover:bg-[#0b5cbe] text-white font-semibold text-[12px] rounded-lg shadow-2xs transition-colors cursor-pointer"
                 >
                   Start
                 </button>
                 <button
-                  onClick={() => handleCopyInviteUrl('http://localhost:3000/join?meetingId=84545631899', 'default')}
+                  onClick={() => openCopyModalForMeeting({ id: '861-5843-0811', title: 'My Meeting', passcode: '0bfJhU' })}
                   className="px-3.5 py-1.5 bg-[#e8f2ff] hover:bg-[#d8e8ff] text-[#0e71eb] font-semibold text-[12px] rounded-lg transition-colors flex items-center space-x-1.5 cursor-pointer"
                 >
                   <Copy className="w-3.5 h-3.5 text-[#0e71eb]" />
@@ -352,7 +363,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
       <button className="fixed bottom-6 right-6 w-11 h-11 rounded-full bg-[#0e71eb] text-white shadow-lg hover:bg-[#0b5cbe] transition-all flex items-center justify-center z-40 active:scale-95 cursor-pointer">
         <MessageCircle className="w-5 h-5 fill-current text-white" />
       </button>
+
+      {/* Copy Meeting Invitation Modal */}
+      <CopyInvitationModal
+        isOpen={!!selectedMeetingForCopy}
+        onClose={() => setSelectedMeetingForCopy(null)}
+        meeting={selectedMeetingForCopy}
+      />
     </div>
   );
 };
+
 

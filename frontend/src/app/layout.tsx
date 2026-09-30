@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: 'Zoom - Video Conferencing, Web Events, Webinars & Team Chat',
   description: 'Functional Zoom web application clone replicating Zoom design, meeting creation, schedule management, and WebRTC video conferencing.',
   icons: {
-    icon: '/favicon.ico',
+    icon: '/icon.svg',
   }
 };
 

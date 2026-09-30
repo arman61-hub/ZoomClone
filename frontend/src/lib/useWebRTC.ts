@@ -25,6 +25,7 @@ export function useWebRTC(meetingId: string, participantId: string, displayName:
   const [isHandRaised, setIsHandRaised] = useState(false);
   const [participants, setParticipants] = useState<ParticipantInfo[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [remoteStreams, setRemoteStreams] = useState<{ [id: string]: MediaStream }>({});
   const [isConnected, setIsConnected] = useState(false);
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -49,7 +50,6 @@ export function useWebRTC(meetingId: string, participantId: string, displayName:
       return stream;
     } catch (err) {
       console.warn("Could not access camera/mic, fallback to dummy stream:", err);
-      // Fallback empty stream for canvas preview if hardware restricted
       const canvas = document.createElement('canvas');
       canvas.width = 640;
       canvas.height = 480;
@@ -64,6 +64,25 @@ export function useWebRTC(meetingId: string, participantId: string, displayName:
       return stream;
     }
   }, []);
+
+  // Send SDP Offer to a peer
+  const sendOffer = useCallback(async (targetId: string) => {
+    if (!targetId || targetId === participantId) return;
+    const pc = createPeerConnection(targetId);
+    try {
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({
+          type: 'OFFER',
+          targetId,
+          sdp: offer
+        }));
+      }
+    } catch (err) {
+      console.error("Error creating SDP offer:", err);
+    }
+  }, [participantId]);
 
   // WebSockets Signaling Setup
   useEffect(() => {
@@ -83,8 +102,22 @@ export function useWebRTC(meetingId: string, participantId: string, displayName:
 
       switch (type) {
         case 'PARTICIPANT_JOINED':
+          setParticipants(data.participants || []);
+          if (data.participantId && data.participantId !== participantId) {
+            sendOffer(data.participantId);
+          }
+          break;
+
         case 'PARTICIPANTS_UPDATED':
           setParticipants(data.participants || []);
+          // Check if there are existing participants to connect to
+          if (data.participants) {
+            data.participants.forEach((p: ParticipantInfo) => {
+              if (p.id !== participantId && !peerConnections.current[p.id]) {
+                sendOffer(p.id);
+              }
+            });
+          }
           break;
 
         case 'PARTICIPANT_LEFT':
@@ -92,6 +125,11 @@ export function useWebRTC(meetingId: string, participantId: string, displayName:
             peerConnections.current[data.participantId].close();
             delete peerConnections.current[data.participantId];
           }
+          setRemoteStreams(prev => {
+            const next = { ...prev };
+            delete next[data.participantId];
+            return next;
+          });
           setParticipants(data.participants || []);
           break;
 
@@ -125,7 +163,12 @@ export function useWebRTC(meetingId: string, participantId: string, displayName:
 
         case 'REMOVED_BY_HOST':
           alert('You have been removed from the meeting by the host.');
-          window.location.href = '/';
+          window.location.href = '/leave';
+          break;
+
+        case 'MEETING_ENDED_BY_HOST':
+          alert('The host has ended the meeting.');
+          window.location.href = '/leave';
           break;
 
         default:
@@ -145,16 +188,32 @@ export function useWebRTC(meetingId: string, participantId: string, displayName:
 
   // PeerConnection Handlers
   const createPeerConnection = (targetId: string) => {
+    if (peerConnections.current[targetId]) {
+      return peerConnections.current[targetId];
+    }
+
     const pc = new RTCPeerConnection({
-      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+      ]
     });
 
     pc.onicecandidate = (event) => {
-      if (event.candidate && wsRef.current) {
+      if (event.candidate && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         wsRef.current.send(JSON.stringify({
           type: 'ICE_CANDIDATE',
           targetId,
           candidate: event.candidate
+        }));
+      }
+    };
+
+    pc.ontrack = (event) => {
+      if (event.streams && event.streams[0]) {
+        setRemoteStreams(prev => ({
+          ...prev,
+          [targetId]: event.streams[0]
         }));
       }
     };
@@ -175,7 +234,7 @@ export function useWebRTC(meetingId: string, participantId: string, displayName:
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
 
-    if (wsRef.current) {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({
         type: 'ANSWER',
         targetId: senderId,
@@ -194,7 +253,11 @@ export function useWebRTC(meetingId: string, participantId: string, displayName:
   const handleReceiveIceCandidate = async (senderId: string, candidate: RTCIceCandidateInit) => {
     const pc = peerConnections.current[senderId];
     if (pc && candidate) {
-      await pc.addIceCandidate(new RTCIceCandidate(candidate));
+      try {
+        await pc.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch (err) {
+        console.warn("Error adding ICE candidate:", err);
+      }
     }
   };
 
@@ -207,12 +270,21 @@ export function useWebRTC(meetingId: string, participantId: string, displayName:
         audioTracks[0].enabled = nextState;
         setIsAudioMuted(!nextState);
 
-        if (wsRef.current) {
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
           wsRef.current.send(JSON.stringify({
             type: 'MEDIA_STATE_CHANGE',
             isAudioMuted: !nextState
           }));
         }
+      } else {
+        navigator.mediaDevices?.getUserMedia({ audio: true }).then(aStream => {
+          const track = aStream.getAudioTracks()[0];
+          if (track) {
+            localStreamRef.current?.addTrack(track);
+            setIsAudioMuted(false);
+            setLocalStream(new MediaStream(localStreamRef.current!.getTracks()));
+          }
+        }).catch(err => console.warn("Could not enable microphone:", err));
       }
     }
   };
@@ -226,12 +298,21 @@ export function useWebRTC(meetingId: string, participantId: string, displayName:
         videoTracks[0].enabled = nextState;
         setIsVideoOff(!nextState);
 
-        if (wsRef.current) {
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
           wsRef.current.send(JSON.stringify({
             type: 'MEDIA_STATE_CHANGE',
             isVideoOff: !nextState
           }));
         }
+      } else {
+        navigator.mediaDevices?.getUserMedia({ video: true }).then(vStream => {
+          const track = vStream.getVideoTracks()[0];
+          if (track) {
+            localStreamRef.current?.addTrack(track);
+            setIsVideoOff(false);
+            setLocalStream(new MediaStream(localStreamRef.current!.getTracks()));
+          }
+        }).catch(err => console.warn("Could not enable camera:", err));
       }
     }
   };
@@ -240,6 +321,10 @@ export function useWebRTC(meetingId: string, participantId: string, displayName:
   const toggleScreenShare = async () => {
     try {
       if (!isScreenSharing) {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+          alert("Screen sharing is not supported in this browser window.");
+          return;
+        }
         const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
         const screenTrack = screenStream.getVideoTracks()[0];
 
@@ -247,7 +332,7 @@ export function useWebRTC(meetingId: string, participantId: string, displayName:
           setIsScreenSharing(false);
           if (localStreamRef.current) {
             const cameraTrack = localStreamRef.current.getVideoTracks()[0];
-            replaceVideoTrack(cameraTrack);
+            if (cameraTrack) replaceVideoTrack(cameraTrack);
           }
         };
 
@@ -256,7 +341,7 @@ export function useWebRTC(meetingId: string, participantId: string, displayName:
       } else {
         if (localStreamRef.current) {
           const cameraTrack = localStreamRef.current.getVideoTracks()[0];
-          replaceVideoTrack(cameraTrack);
+          if (cameraTrack) replaceVideoTrack(cameraTrack);
         }
         setIsScreenSharing(false);
       }
@@ -278,7 +363,7 @@ export function useWebRTC(meetingId: string, participantId: string, displayName:
   const toggleHandRaise = () => {
     const nextState = !isHandRaised;
     setIsHandRaised(nextState);
-    if (wsRef.current) {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({
         type: 'MEDIA_STATE_CHANGE',
         isHandRaised: nextState
@@ -288,7 +373,7 @@ export function useWebRTC(meetingId: string, participantId: string, displayName:
 
   // Send Chat Message
   const sendChatMessage = (text: string) => {
-    if (text.trim() && wsRef.current) {
+    if (text.trim() && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({
         type: 'CHAT_MESSAGE',
         message: text,
@@ -299,7 +384,7 @@ export function useWebRTC(meetingId: string, participantId: string, displayName:
 
   // Host Action: Mute All
   const hostMuteAll = () => {
-    if (isHost && wsRef.current) {
+    if (isHost && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({
         type: 'HOST_ACTION',
         action: 'MUTE_ALL'
@@ -309,11 +394,21 @@ export function useWebRTC(meetingId: string, participantId: string, displayName:
 
   // Host Action: Remove Participant
   const hostRemoveParticipant = (targetId: string) => {
-    if (isHost && wsRef.current) {
+    if (isHost && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({
         type: 'HOST_ACTION',
         action: 'REMOVE_PARTICIPANT',
         targetParticipantId: targetId
+      }));
+    }
+  };
+
+  // Host Action: End Meeting for All
+  const endMeetingForAll = () => {
+    if (isHost && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({
+        type: 'HOST_ACTION',
+        action: 'END_MEETING_FOR_ALL'
       }));
     }
   };
@@ -327,6 +422,7 @@ export function useWebRTC(meetingId: string, participantId: string, displayName:
     isHandRaised,
     participants,
     chatMessages,
+    remoteStreams,
     isConnected,
     toggleAudio,
     toggleVideo,
@@ -334,6 +430,8 @@ export function useWebRTC(meetingId: string, participantId: string, displayName:
     toggleHandRaise,
     sendChatMessage,
     hostMuteAll,
-    hostRemoveParticipant
+    hostRemoveParticipant,
+    endMeetingForAll
   };
 }
+

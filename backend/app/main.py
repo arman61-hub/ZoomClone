@@ -171,7 +171,6 @@ async def websocket_endpoint(
             elif msg_type == "CHAT_MESSAGE":
                 text = data.get("message", "")
                 if text.strip():
-                    crud.save_chat_message(db, meeting_id, display_name, text)
                     chat_event = {
                         "type": "CHAT_MESSAGE",
                         "senderId": participant_id,
@@ -206,6 +205,7 @@ async def websocket_endpoint(
                         "type": "FORCE_MUTE_AUDIO"
                     })
                 elif action == "END_MEETING_FOR_ALL":
+                    crud.end_meeting_in_db(db, meeting_id)
                     await manager.broadcast(meeting_id, {
                         "type": "MEETING_ENDED_BY_HOST"
                     })
@@ -216,6 +216,14 @@ async def websocket_endpoint(
 
     except WebSocketDisconnect:
         await manager.disconnect(meeting_id, participant_id)
+        # Check remaining participants; if 0, end meeting in DB
+        remaining = manager.get_room_participants_list(meeting_id)
+        if len(remaining) == 0:
+            crud.end_meeting_in_db(db, meeting_id)
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
         await manager.disconnect(meeting_id, participant_id)
+        remaining = manager.get_room_participants_list(meeting_id)
+        if len(remaining) == 0:
+            crud.end_meeting_in_db(db, meeting_id)
+

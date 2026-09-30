@@ -6,7 +6,7 @@ class UserBase(BaseModel):
     email: str
     name: str = "Arman"
     plan_type: str = "Workplace Basic"
-    personal_meeting_id: str = "6997723211"
+    personal_meeting_id: str = "5602842970"
 
 class UserResponse(UserBase):
     id: str
@@ -43,29 +43,3 @@ class MeetingResponse(BaseModel):
     class Config:
         from_attributes = True
 
-class ParticipantResponse(BaseModel):
-    id: str
-    meeting_id: str
-    display_name: str
-    role: str
-    is_audio_muted: bool
-    is_video_off: bool
-    is_hand_raised: bool
-    joined_at: datetime
-
-    class Config:
-        from_attributes = True
-
-class ChatMessageCreate(BaseModel):
-    message: str
-    sender_name: str
-
-class ChatMessageResponse(BaseModel):
-    id: str
-    meeting_id: str
-    sender_name: str
-    message: str
-    timestamp: datetime
-
-    class Config:
-        from_attributes = True

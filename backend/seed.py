@@ -38,12 +38,12 @@ def seed_database():
 
         # Seed Past Recent Meetings
         recent_1 = models.Meeting(
-            id="699-772-3211",
+            id="352-795-5122",
             host_id=user.id,
-            title="Arman's Personal Meeting Room",
+            title="Arman Redhu's Personal Meeting Room",
             description="Default personal meeting space.",
             status="ended",
-            passcode="699772",
+            passcode="352795",
             scheduled_start=now - timedelta(days=2),
             duration_minutes=30,
             ended_at=now - timedelta(days=2) + timedelta(minutes=30)

@@ -24,7 +24,52 @@ import {
   SlidersHorizontal,
   ExternalLink
 } from 'lucide-react';
-import { useWebRTC } from '@/lib/useWebRTC';
+import { useWebRTC, ParticipantInfo } from '@/lib/useWebRTC';
+
+interface RemoteVideoTileProps {
+  participant: ParticipantInfo;
+  stream?: MediaStream;
+}
+
+const RemoteVideoTile: React.FC<RemoteVideoTileProps> = ({ participant, stream }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (videoRef.current && stream) {
+      videoRef.current.srcObject = stream;
+    }
+  }, [stream]);
+
+  return (
+    <div className="relative w-full h-full min-h-[220px] bg-[#222222] rounded-2xl border border-slate-800/80 overflow-hidden shadow-2xl flex items-center justify-center">
+      {stream && !participant.isVideoOff ? (
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <div className="flex flex-col items-center justify-center space-y-3">
+          <div className="w-20 h-20 rounded-full bg-amber-600 text-white flex items-center justify-center font-bold text-2xl shadow-lg">
+            {participant.displayName[0]?.toUpperCase() || 'G'}
+          </div>
+          <span className="font-bold text-slate-200 text-sm">{participant.displayName}</span>
+        </div>
+      )}
+
+      {/* Bottom Left Name Tag */}
+      <div className="absolute bottom-3 left-3 px-3 py-1 bg-black/70 backdrop-blur-xs rounded-lg text-xs font-semibold text-slate-200 flex items-center space-x-1.5 border border-slate-700/50">
+        {participant.isAudioMuted ? (
+          <MicOff className="w-3.5 h-3.5 text-red-500" />
+        ) : (
+          <Mic className="w-3.5 h-3.5 text-slate-300" />
+        )}
+        <span>{participant.displayName} {participant.isHost ? '(Host)' : ''}</span>
+      </div>
+    </div>
+  );
+};
 
 interface MeetingRoomProps {
   meetingId: string;
@@ -57,13 +102,15 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
     isHandRaised,
     participants,
     chatMessages,
+    remoteStreams,
     toggleAudio,
     toggleVideo,
     toggleScreenShare,
     toggleHandRaise,
     sendChatMessage,
     hostMuteAll,
-    hostRemoveParticipant
+    hostRemoveParticipant,
+    endMeetingForAll
   } = useWebRTC(meetingId, participantId, displayName, isHost);
 
   const [activePanel, setActivePanel] = useState<'participants' | 'chat' | null>('participants');
@@ -92,25 +139,29 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
   };
 
   const handleEndMeetingForAll = () => {
-    // Send WebSocket host action for ending meeting
     if (isHost) {
-      const ws = (window as any).__zoom_ws;
-      if (ws) {
-        ws.send(JSON.stringify({
-          type: 'HOST_ACTION',
-          action: 'END_MEETING_FOR_ALL'
-        }));
-      }
+      endMeetingForAll();
     }
-    router.push('/');
+    onLeaveMeeting ? onLeaveMeeting() : router.push('/');
   };
 
   const handleLeaveMeetingOnly = () => {
-    router.push('/leave');
+    onLeaveMeeting ? onLeaveMeeting() : router.push('/leave');
   };
 
+  const [copyNotification, setCopyNotification] = useState(false);
+
+  const handleCopyInviteLink = () => {
+    const inviteUrl = `${window.location.origin}/join?meetingId=${encodeURIComponent(meetingId)}`;
+    navigator.clipboard.writeText(inviteUrl);
+    setCopyNotification(true);
+    setTimeout(() => setCopyNotification(false), 2500);
+  };
+
+  const otherParticipants = participants.filter(p => p.id !== participantId);
+
   return (
-    <div className="flex flex-col h-screen w-screen bg-[#141414] text-white font-sans overflow-hidden select-none">
+    <div className="flex flex-col h-screen w-screen bg-[#141414] text-white font-sans overflow-hidden select-none relative">
       {/* Top Header Bar matching Image 2 */}
       <header className="h-10 bg-[#0A0A0A] px-4 flex items-center justify-between z-30 border-b border-slate-900 text-xs">
         {/* Left: Meeting Title */}
@@ -130,12 +181,19 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
         </div>
       </header>
 
+      {/* Copy Link Toast Notification */}
+      {copyNotification && (
+        <div className="absolute top-12 left-1/2 -translate-x-1/2 z-50 bg-[#0e71eb] text-white text-xs px-4 py-2 rounded-xl shadow-xl font-bold flex items-center space-x-2 animate-in fade-in slide-in-from-top-2">
+          <span>✔ Invite link copied to clipboard!</span>
+        </div>
+      )}
+
       {/* Camera Warning Banner matching Image 2 */}
-      {showCameraWarning && (
+      {showCameraWarning && !copyNotification && (
         <div className="absolute top-12 left-1/2 -translate-x-1/2 z-40 bg-[#1A1A1A]/90 border border-amber-500/40 text-amber-200 text-xs px-4 py-1.5 rounded-xl flex items-center space-x-2 shadow-lg">
           <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
-          <span>Please enable access to your <button onClick={toggleVideo} className="text-blue-400 underline">camera</button> for the best experience.</span>
-          <button onClick={() => setShowCameraWarning(false)} className="text-slate-400 hover:text-white ml-2">
+          <span>Please enable access to your <button onClick={toggleVideo} className="text-blue-400 underline cursor-pointer">camera</button> for the best experience.</span>
+          <button onClick={() => setShowCameraWarning(false)} className="text-slate-400 hover:text-white ml-2 cursor-pointer">
             ✕
           </button>
         </div>
@@ -145,40 +203,75 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
       <div className="flex-1 flex overflow-hidden relative">
         {/* Main Stage Canvas */}
         <main className="flex-1 relative flex items-center justify-center bg-[#141414] p-4">
-          {/* Active Speaker Large Center View */}
-          <div className="w-full h-full flex flex-col items-center justify-center relative">
-            {/* Center Stage Avatar Name */}
-            <div className="flex flex-col items-center justify-center space-y-4">
-              <span className="text-6xl lg:text-7xl font-extrabold text-white tracking-tight">
-                {displayName}
-              </span>
-            </div>
-
-            {/* Self View PIP Thumbnail Box (Top Right of Main Stage) */}
-            <div className="absolute top-4 right-4 w-48 h-32 bg-[#222222] rounded-xl border border-slate-800 overflow-hidden shadow-2xl flex items-center justify-center">
-              {!isVideoOff ? (
-                <video
-                  ref={localVideoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="w-full h-full object-cover transform -scale-x-100"
-                />
-              ) : (
-                <div className="flex items-center justify-center w-full h-full text-slate-300 font-bold text-sm">
-                  {displayName}
+          {otherParticipants.length === 0 ? (
+            /* Single User Stage View */
+            <div className="w-full h-full flex flex-col items-center justify-center relative">
+              <div className="flex flex-col items-center justify-center space-y-4">
+                <div className="w-28 h-28 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-4xl shadow-xl">
+                  {displayName[0]?.toUpperCase() || 'A'}
                 </div>
-              )}
-              <div className="absolute bottom-1.5 left-1.5 px-2 py-0.5 bg-black/70 rounded text-[10px] text-slate-300 font-medium">
+                <span className="text-4xl lg:text-5xl font-extrabold text-white tracking-tight">
+                  {displayName}
+                </span>
+              </div>
+
+              {/* Self View PIP Thumbnail Box */}
+              <div className="absolute top-4 right-4 w-48 h-32 bg-[#222222] rounded-xl border border-slate-800 overflow-hidden shadow-2xl flex items-center justify-center">
+                {!isVideoOff ? (
+                  <video
+                    ref={localVideoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover transform -scale-x-100"
+                  />
+                ) : (
+                  <div className="flex items-center justify-center w-full h-full text-slate-300 font-bold text-sm">
+                    {displayName}
+                  </div>
+                )}
+                <div className="absolute bottom-1.5 left-1.5 px-2 py-0.5 bg-black/70 rounded text-[10px] text-slate-300 font-medium">
+                  {displayName} (me)
+                </div>
+              </div>
+
+              <div className="absolute bottom-4 left-4 px-2.5 py-1 bg-black/80 rounded text-xs font-semibold text-slate-300 border border-slate-800">
                 {displayName}
               </div>
             </div>
+          ) : (
+            /* Multi-Participant Video Grid */
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 w-full h-full max-w-6xl max-h-[82vh] p-2 items-center justify-center">
+              {/* Local User Tile */}
+              <div className="relative w-full h-full min-h-[220px] bg-[#222222] rounded-2xl border border-slate-800/80 overflow-hidden shadow-2xl flex items-center justify-center">
+                {!isVideoOff ? (
+                  <video
+                    ref={localVideoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover transform -scale-x-100"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center space-y-3">
+                    <div className="w-20 h-20 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-2xl shadow-lg">
+                      {displayName[0]?.toUpperCase() || 'A'}
+                    </div>
+                    <span className="font-bold text-slate-200 text-sm">{displayName}</span>
+                  </div>
+                )}
+                <div className="absolute bottom-3 left-3 px-3 py-1 bg-black/70 backdrop-blur-xs rounded-lg text-xs font-semibold text-slate-200 flex items-center space-x-1.5 border border-slate-700/50">
+                  {isAudioMuted ? <MicOff className="w-3.5 h-3.5 text-red-500" /> : <Mic className="w-3.5 h-3.5 text-slate-300" />}
+                  <span>{displayName} (me)</span>
+                </div>
+              </div>
 
-            {/* Bottom Left Active Speaker Name Tag */}
-            <div className="absolute bottom-4 left-4 px-2.5 py-1 bg-black/80 rounded text-xs font-semibold text-slate-300 border border-slate-800">
-              {displayName}
+              {/* Remote Participants Tiles */}
+              {otherParticipants.map((p) => (
+                <RemoteVideoTile key={p.id} participant={p} stream={remoteStreams[p.id]} />
+              ))}
             </div>
-          </div>
+          )}
         </main>
 
         {/* Right Drawer: Participants Panel matching Image 2 */}
@@ -191,7 +284,7 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
               </h3>
               <div className="flex items-center space-x-2 text-slate-400">
                 <ExternalLink className="w-3.5 h-3.5 cursor-pointer hover:text-white" />
-                <button onClick={() => setActivePanel(null)} className="hover:text-white">
+                <button onClick={() => setActivePanel(null)} className="hover:text-white cursor-pointer">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -206,7 +299,7 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
                     {displayName[0]?.toUpperCase() || 'A'}
                   </div>
                   <span className="font-semibold text-slate-200">
-                    {displayName}({isHost ? 'Host, me' : 'me'})
+                    {displayName} ({isHost ? 'Host, me' : 'me'})
                   </span>
                 </div>
                 <div className="flex items-center space-x-2 text-slate-400">
@@ -224,30 +317,43 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
                       {p.displayName[0]?.toUpperCase() || 'G'}
                     </div>
                     <span className="font-semibold text-slate-200">
-                      {p.displayName}({p.isHost ? 'Host' : 'Guest'})
+                      {p.displayName} ({p.isHost ? 'Host' : 'Guest'})
                     </span>
                   </div>
                   <div className="flex items-center space-x-2 text-slate-400">
                     {p.isAudioMuted ? <MicOff className="w-3.5 h-3.5 text-red-500" /> : <Mic className="w-3.5 h-3.5 text-slate-300" />}
                     {p.isVideoOff ? <VideoOff className="w-3.5 h-3.5 text-red-500" /> : <VideoIcon className="w-3.5 h-3.5 text-slate-300" />}
-                    <MoreHorizontal className="w-3.5 h-3.5" />
+                    {isHost && (
+                      <button onClick={() => hostRemoveParticipant(p.id)} className="text-red-400 hover:text-red-300 text-[10px] underline ml-1 cursor-pointer">
+                        Remove
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* Bottom Actions in Participants Drawer matching Image 2 */}
+            {/* Bottom Actions in Participants Drawer */}
             <div className="p-3 border-t border-slate-800 flex items-center justify-between gap-2">
-              <button className="flex-1 py-1.5 px-3 bg-[#2D2D38] hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl transition-colors">
+              <button
+                onClick={handleCopyInviteLink}
+                className="flex-1 py-1.5 px-3 bg-[#2D2D38] hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+              >
                 Invite
               </button>
               {isHost && (
-                <button onClick={hostMuteAll} className="flex-1 py-1.5 px-3 bg-[#2D2D38] hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl transition-colors">
+                <button
+                  onClick={hostMuteAll}
+                  className="flex-1 py-1.5 px-3 bg-[#2D2D38] hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+                >
                   Mute All
                 </button>
               )}
-              <button className="flex-1 py-1.5 px-3 bg-[#2D2D38] hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl transition-colors">
-                More
+              <button
+                onClick={handleCopyInviteLink}
+                className="flex-1 py-1.5 px-3 bg-[#2D2D38] hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+              >
+                Share Link
               </button>
             </div>
           </aside>

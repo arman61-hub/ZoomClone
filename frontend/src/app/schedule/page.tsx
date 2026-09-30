@@ -27,12 +27,14 @@ export default function DedicatedSchedulePage() {
   const [hostVideoOn, setHostVideoOn] = useState(true);
   const [participantVideoOn, setParticipantVideoOn] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [scheduleError, setScheduleError] = useState('');
 
   const handleSaveSchedule = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!topic.trim()) return;
 
     setIsLoading(true);
+    setScheduleError('');
 
     try {
       const scheduledStart = new Date(`${dateStr}T${timeStr}:00Z`).toISOString();
@@ -48,8 +50,8 @@ export default function DedicatedSchedulePage() {
       });
 
       router.push('/');
-    } catch (err) {
-      console.error('Failed to schedule meeting:', err);
+    } catch (err: any) {
+      setScheduleError(err.message || 'Meeting schedule conflict! Only one meeting is allowed at a particular timestamp.');
     } finally {
       setIsLoading(false);
     }
@@ -57,7 +59,7 @@ export default function DedicatedSchedulePage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white text-slate-800 font-sans select-none">
-      <Navbar user={{ id: '1', name: 'Arman', email: 'arman@zoomclone.local', plan_type: 'Workplace Basic', personal_meeting_id: '9447726574', created_at: '' }} />
+      <Navbar user={{ id: '1', name: 'Arman Redhu', email: 'arman@zoomclone.local', plan_type: 'Workplace Basic', personal_meeting_id: '3527955122', created_at: '' }} />
 
       <div className="flex flex-1">
         <Sidebar activeTab="meetings" setActiveTab={() => {}} />
@@ -65,13 +67,20 @@ export default function DedicatedSchedulePage() {
         {/* Main Schedule Workspace matching Image 2 */}
         <main className="flex-1 bg-white p-6 lg:p-10 max-w-4xl space-y-6 text-xs text-slate-800">
           {/* Back Link */}
-          <Link href="/" className="inline-block text-xs font-semibold text-zoom-blue hover:underline mb-2">
+          <Link href="/" className="inline-block text-xs font-semibold text-[#0e71eb] hover:underline mb-2">
             &lt; Back to Meetings
           </Link>
 
           <h1 className="text-xl font-bold text-slate-900 tracking-tight">
             Schedule Meeting
           </h1>
+
+          {scheduleError && (
+            <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl font-semibold flex items-center space-x-2 text-xs">
+              <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+              <span>{scheduleError}</span>
+            </div>
+          )}
 
           <form onSubmit={handleSaveSchedule} className="space-y-6">
             {/* Topic */}

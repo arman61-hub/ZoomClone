@@ -73,9 +73,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             <ChevronDown className="w-3.5 h-3.5 text-[#747474]" />
           </button>
 
-          {/* User Profile Avatar Pill matching crimson red badge in screenshot */}
-          <div className="w-7 h-7 rounded-full bg-[#d92138] text-white flex items-center justify-center font-semibold text-[12px] shadow-2xs">
-            {user ? `${user.name[0]?.toUpperCase()}.` : 'A.'}
+          {/* User Profile Avatar Pill matching purple AR badge in Image 1 */}
+          <div className="w-7 h-7 rounded-full bg-[#854BE3] text-white flex items-center justify-center font-bold text-[11px] shadow-2xs cursor-pointer">
+            AR
           </div>
         </div>
       </div>

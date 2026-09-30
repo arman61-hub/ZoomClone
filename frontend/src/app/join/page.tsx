@@ -1,26 +1,40 @@
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { Mic, MicOff, Video, VideoOff, AlertTriangle, ChevronUp, Image as ImageIcon } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, AlertTriangle, ChevronUp, Image as ImageIcon, Key, Lock, CheckCircle2 } from 'lucide-react';
+import { fetchMeetingById, createInstantMeeting } from '@/lib/api';
 
 function JoinMeetingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const params = useParams();
   
-  const meetingIdParam = searchParams.get('meetingId') || searchParams.get('id') || '699-772-3211';
-  const isHostParam = searchParams.get('isHost') === 'true';
+  const routeId = (params?.id as string) || '';
+  const meetingIdParam = routeId || searchParams.get('meetingId') || searchParams.get('id') || '';
+  const isHostParam = searchParams.get('isHost') === 'true' || searchParams.get('mode') === 'host';
 
   const [meetingIdInput, setMeetingIdInput] = useState(meetingIdParam);
-  const [yourName, setYourName] = useState('');
+  const [passcode, setPasscode] = useState('');
+  const [yourName, setYourName] = useState('Arman Redhu');
   const [rememberName, setRememberName] = useState(true);
+  
   const [isAudioOff, setIsAudioOff] = useState(false);
-  const [isVideoOff, setIsVideoOff] = useState(true);
-  const [cameraWarning, setCameraWarning] = useState('Your camera is being used by other apps. Close those apps and try again.');
+  const [isVideoOff, setIsVideoOff] = useState(false);
+  const [cameraWarning, setCameraWarning] = useState('');
+  const [validationError, setValidationError] = useState('');
+  const [isValidating, setIsValidating] = useState(false);
+  
   const [stream, setStream] = useState<MediaStream | null>(null);
-
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const savedName = localStorage.getItem('zoom_user_name');
+    if (savedName) {
+      setYourName(savedName);
+    }
+  }, []);
 
   useEffect(() => {
     async function startCamera() {
@@ -37,7 +51,7 @@ function JoinMeetingContent() {
         }
       } catch (err) {
         setIsVideoOff(true);
-        setCameraWarning('Your camera is being used by other apps. Close those apps and try again.');
+        setCameraWarning('Your camera is restricted or being used by another app.');
       }
     }
     startCamera();
@@ -49,39 +63,111 @@ function JoinMeetingContent() {
     };
   }, []);
 
-  const handleJoinSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!yourName.trim()) return;
+  useEffect(() => {
+    if (videoRef.current && stream && !isVideoOff) {
+      videoRef.current.srcObject = stream;
+    }
+  }, [stream, isVideoOff]);
 
-    const cleanId = meetingIdInput.trim() || '699-772-3211';
-    
-    if (rememberName) {
-      localStorage.setItem('zoom_user_name', yourName);
+  const handleJoinSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setValidationError('');
+
+    if (!yourName.trim()) {
+      setValidationError('Please enter your display name.');
+      return;
     }
 
-    const query = new URLSearchParams({
-      name: yourName.trim(),
-      audioOff: String(isAudioOff),
-      videoOff: String(isVideoOff),
-      isHost: String(isHostParam)
-    }).toString();
+    // Host Mode without Meeting ID: Create Instant Meeting
+    if (isHostParam && !meetingIdInput.trim()) {
+      try {
+        setIsValidating(true);
+        const newMeeting = await createInstantMeeting();
+        if (rememberName) {
+          localStorage.setItem('zoom_user_name', yourName.trim());
+        }
+        const query = new URLSearchParams({
+          name: yourName.trim(),
+          audioOff: String(isAudioOff),
+          videoOff: String(isVideoOff),
+          isHost: 'true'
+        }).toString();
+        router.push(`/meeting/${encodeURIComponent(newMeeting.id)}?${query}`);
+      } catch (err) {
+        setValidationError('Failed to create instant meeting. Please try again.');
+      } finally {
+        setIsValidating(false);
+      }
+      return;
+    }
 
-    router.push(`/meeting/${encodeURIComponent(cleanId)}?${query}`);
+    // Normal Join or Host joining specific Meeting ID
+    const cleanId = meetingIdInput.trim();
+    if (!cleanId) {
+      setValidationError('Please enter a valid Meeting ID.');
+      return;
+    }
+
+    try {
+      setIsValidating(true);
+      // Validate meeting exists in DB
+      const meeting = await fetchMeetingById(cleanId);
+
+      if (!meeting) {
+        setValidationError('Invalid Meeting ID. Meeting does not exist.');
+        setIsValidating(false);
+        return;
+      }
+
+      if (meeting.status === 'ended') {
+        setValidationError('This meeting has already ended.');
+        setIsValidating(false);
+        return;
+      }
+
+      // Check Passcode ONLY for guest mode (not host mode)
+      if (!isHostParam && meeting.passcode) {
+        if (!passcode.trim() || passcode.trim() !== meeting.passcode.trim()) {
+          setValidationError(`Incorrect Passcode for Meeting ID ${cleanId}. Please check and try again.`);
+          setIsValidating(false);
+          return;
+        }
+      }
+
+      // Validation clean success
+      if (rememberName) {
+        localStorage.setItem('zoom_user_name', yourName.trim());
+      }
+
+      const query = new URLSearchParams({
+        name: yourName.trim(),
+        audioOff: String(isAudioOff),
+        videoOff: String(isVideoOff),
+        isHost: String(isHostParam || meeting.host_id === 'default-user-arman')
+      }).toString();
+
+      router.push(`/meeting/${encodeURIComponent(meeting.id)}?${query}`);
+
+    } catch (err: any) {
+      setValidationError(err.message || 'Invalid Meeting ID or network error.');
+    } finally {
+      setIsValidating(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-white text-slate-800 flex flex-col justify-between p-6 font-sans select-none">
       {/* Top Bar with Back Link */}
       <div className="w-full max-w-7xl mx-auto flex items-center justify-between">
-        <Link href="/" className="inline-flex items-center text-xs font-semibold text-zoom-blue hover:underline space-x-1">
+        <Link href="/" className="inline-flex items-center text-xs font-semibold text-[#0e71eb] hover:underline space-x-1">
           <span>&lt; Back</span>
         </Link>
       </div>
 
-      {/* Main Content Area: Replica of Image 1 */}
+      {/* Main Content Area: Pre-Join Lobby */}
       <main className="w-full max-w-5xl mx-auto flex flex-col lg:flex-row items-center justify-center gap-8 py-6">
         {/* Left Card: Camera Preview Box */}
-        <div className="w-full lg:w-[540px] bg-[#222222] rounded-2xl p-4 flex flex-col justify-between h-[360px] relative shadow-lg text-white">
+        <div className="w-full lg:w-[540px] bg-[#222222] rounded-2xl p-4 flex flex-col justify-between h-[380px] relative shadow-lg text-white">
           {/* Top Camera Warning Banner */}
           {cameraWarning && (
             <div className="w-full bg-[#1A1A1A]/90 border border-amber-500/40 text-amber-200 text-xs px-3.5 py-2 rounded-xl flex items-center space-x-2 shadow-xs z-10">
@@ -91,7 +177,7 @@ function JoinMeetingContent() {
           )}
 
           {/* Center Stage: Video or Avatar Placeholder */}
-          <div className="flex-1 flex items-center justify-center relative my-2 overflow-hidden rounded-xl">
+          <div className="flex-1 flex items-center justify-center relative my-2 overflow-hidden rounded-xl bg-black">
             {!isVideoOff ? (
               <video
                 ref={videoRef}
@@ -102,7 +188,7 @@ function JoinMeetingContent() {
               />
             ) : (
               <div className="w-28 h-28 rounded-3xl bg-[#333333] flex items-center justify-center border border-slate-700">
-                <svg className="w-16 h-16 text-slate-500" fill="currentColor" viewBox="0 0 24 24">
+                <svg className="w-16 h-16 text-slate-400" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
                 </svg>
               </div>
@@ -115,17 +201,17 @@ function JoinMeetingContent() {
               <button
                 type="button"
                 onClick={() => setIsAudioOff(!isAudioOff)}
-                className="flex items-center space-x-1 bg-[#1A1A1A] hover:bg-[#333333] text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-700 transition-colors"
+                className="flex items-center space-x-1 bg-[#1A1A1A] hover:bg-[#333333] text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-700 transition-colors cursor-pointer"
               >
                 {isAudioOff ? <MicOff className="w-3.5 h-3.5 text-red-500" /> : <Mic className="w-3.5 h-3.5 text-white" />}
-                <span>Mute</span>
+                <span>{isAudioOff ? 'Unmute' : 'Mute'}</span>
                 <ChevronUp className="w-3 h-3 text-slate-400 ml-0.5" />
               </button>
 
               <button
                 type="button"
                 onClick={() => setIsVideoOff(!isVideoOff)}
-                className="flex items-center space-x-1 bg-[#1A1A1A] hover:bg-[#333333] text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-700 transition-colors"
+                className="flex items-center space-x-1 bg-[#1A1A1A] hover:bg-[#333333] text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-700 transition-colors cursor-pointer"
               >
                 {isVideoOff ? <VideoOff className="w-3.5 h-3.5 text-red-500" /> : <Video className="w-3.5 h-3.5 text-white" />}
                 <span>{isVideoOff ? 'Start Video' : 'Stop Video'}</span>
@@ -135,7 +221,7 @@ function JoinMeetingContent() {
 
             <button
               type="button"
-              className="flex items-center space-x-1 bg-[#1A1A1A] hover:bg-[#333333] text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-700 transition-colors"
+              className="flex items-center space-x-1 bg-[#1A1A1A] hover:bg-[#333333] text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-700 transition-colors cursor-pointer"
             >
               <ImageIcon className="w-3.5 h-3.5 text-slate-300" />
               <span>Backgrounds</span>
@@ -143,13 +229,53 @@ function JoinMeetingContent() {
           </div>
         </div>
 
-        {/* Right Card: Enter Meeting Info */}
-        <div className="w-full lg:w-[380px] space-y-5">
+        {/* Right Card: Enter Meeting Info Form */}
+        <div className="w-full lg:w-[380px] space-y-4">
           <h2 className="text-xl font-bold text-slate-900 tracking-tight text-center lg:text-left">
-            Enter Meeting Info
+            {isHostParam ? 'Host a Meeting' : 'Enter Meeting Info'}
           </h2>
 
-          <form onSubmit={handleJoinSubmit} className="space-y-4 text-xs">
+          {/* Error Banner */}
+          {validationError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs font-semibold text-red-700 flex items-start space-x-2 animate-in fade-in">
+              <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+              <span>{validationError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleJoinSubmit} className="space-y-3.5 text-xs">
+            {!isHostParam && (
+              <>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Meeting ID or Personal Link
+                  </label>
+                  <input
+                    type="text"
+                    value={meetingIdInput}
+                    onChange={(e) => setMeetingIdInput(e.target.value)}
+                    placeholder="Enter Meeting ID (e.g. 849-204-1029)"
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 text-sm font-medium focus:border-[#0e71eb] focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Meeting Passcode
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={passcode}
+                      onChange={(e) => setPasscode(e.target.value)}
+                      placeholder="Enter passcode (e.g. 839201)"
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 text-sm font-medium focus:border-[#0e71eb] focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all"
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
             <div>
               <label className="block font-semibold text-slate-700 mb-1">
                 Your Name
@@ -158,41 +284,36 @@ function JoinMeetingContent() {
                 type="text"
                 value={yourName}
                 onChange={(e) => setYourName(e.target.value)}
-                placeholder="Enter display name (e.g. kk)"
+                placeholder="Enter your display name"
                 required
-                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 text-sm font-medium focus:border-zoom-blue focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 text-sm font-medium focus:border-[#0e71eb] focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all"
               />
             </div>
 
-            <label className="flex items-center space-x-2 text-slate-600 font-medium cursor-pointer">
+            <label className="flex items-center space-x-2 text-slate-600 font-medium cursor-pointer pt-1">
               <input
                 type="checkbox"
                 checked={rememberName}
                 onChange={(e) => setRememberName(e.target.checked)}
-                className="w-4 h-4 rounded text-zoom-blue focus:ring-zoom-blue border-slate-300"
+                className="w-4 h-4 rounded text-[#0e71eb] focus:ring-[#0e71eb] border-slate-300"
               />
               <span>Remember my name for future meetings</span>
             </label>
 
             <button
               type="submit"
-              disabled={!yourName.trim()}
-              className="w-full py-2.5 text-sm font-bold text-white bg-zoom-blue hover:bg-zoom-blue-hover rounded-lg transition-colors shadow-2xs disabled:opacity-50 disabled:bg-slate-300"
+              disabled={isValidating || !yourName.trim()}
+              className="w-full py-2.5 text-sm font-bold text-white bg-[#0e71eb] hover:bg-[#0b5cbe] rounded-lg transition-colors shadow-2xs disabled:opacity-50 disabled:bg-slate-300 cursor-pointer flex items-center justify-center space-x-2"
             >
-              Join
+              {isValidating ? <span>Validating...</span> : <span>{isHostParam && !meetingIdInput.trim() ? 'Start Meeting' : 'Join'}</span>}
             </button>
           </form>
 
-          <div className="space-y-2 text-[11px] text-slate-500 leading-relaxed pt-2">
+          <div className="space-y-1.5 text-[11px] text-slate-500 leading-relaxed pt-1">
             <p>
-              By clicking "Join", you agree to our{' '}
-              <a href="#" className="text-zoom-blue hover:underline">Terms of Service</a> and{' '}
-              <a href="#" className="text-zoom-blue hover:underline">Privacy Statement</a>.
-            </p>
-            <p>
-              Zoom is protected by reCAPTCHA and their{' '}
-              <a href="#" className="text-zoom-blue hover:underline">Privacy Policy</a> and{' '}
-              <a href="#" className="text-zoom-blue hover:underline">Terms of Service</a> apply.
+              By clicking "{isHostParam && !meetingIdInput.trim() ? 'Start Meeting' : 'Join'}", you agree to our{' '}
+              <a href="#" className="text-[#0e71eb] hover:underline">Terms of Service</a> and{' '}
+              <a href="#" className="text-[#0e71eb] hover:underline">Privacy Statement</a>.
             </p>
           </div>
         </div>
@@ -214,3 +335,4 @@ export default function JoinMeetingPage() {
     </Suspense>
   );
 }
+
