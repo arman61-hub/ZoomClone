@@ -137,20 +137,20 @@ export const Dashboard: React.FC<DashboardProps> = ({
   );
 
   return (
-    <div className="flex-1 bg-white p-5 lg:p-7 space-y-6 font-sans text-xs text-[#232333] select-none relative min-h-[calc(100vh-3.5rem)]">
+    <div className="flex-1 bg-white p-4 sm:p-5 lg:p-7 space-y-5 lg:space-y-6 font-sans text-xs text-[#232333] select-none relative min-h-[calc(100vh-3.5rem)]">
       {/* Top Main Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-5 items-stretch">
         {/* Top-Left Card: Profile Box */}
-        <div className="lg:col-span-7 bg-white p-5 lg:p-6 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="md:col-span-12 lg:col-span-7 bg-white p-4 sm:p-5 lg:p-6 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4 text-center sm:text-left">
           {/* Left: Avatar + Name + Plan */}
-          <div className="flex items-center space-x-4">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-3 sm:space-y-0 sm:space-x-4">
             <div className="w-14 h-14 rounded-2xl bg-[#e4e7eb] text-[#9ea4b0] flex items-center justify-center shrink-0">
               <svg className="w-9 h-9 fill-current" viewBox="0 0 24 24">
                 <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
               </svg>
             </div>
             <div>
-              <h1 className="text-[22px] font-bold text-[#131619] tracking-tight leading-tight">
+              <h1 className="text-[20px] sm:text-[22px] font-bold text-[#131619] tracking-tight leading-tight">
                 {user ? user.name : 'Arman Redhu'}
               </h1>
               <p className="text-[#747474] text-[13px] font-normal mt-0.5">
@@ -171,8 +171,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
 
         {/* Top-Right Card: Quick Actions & PMI */}
-        <div className="lg:col-span-5 bg-white p-5 lg:p-6 rounded-2xl border border-slate-200/80 shadow-2xs space-y-4 flex flex-col justify-between">
-          <div className="grid grid-cols-3 gap-3">
+        <div className="md:col-span-12 lg:col-span-5 bg-white p-4 sm:p-5 lg:p-6 rounded-2xl border border-slate-200/80 shadow-2xs space-y-4 flex flex-col justify-between">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
             <Link
               href="/schedule"
               className="group flex flex-col items-center justify-center p-2 text-center"
@@ -204,9 +204,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </button>
           </div>
 
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-between px-3">
+          <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between px-2 sm:px-3 gap-2 sm:gap-0">
             {/* Left side: Personal Meeting ID */}
-            <div className="text-left space-y-0.5">
+            <div className="text-left space-y-0.5 w-full sm:w-auto">
               <div className="text-[12px] font-bold text-[#131619]">
                 Personal Meeting ID
               </div>
@@ -223,11 +223,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
 
             {/* Right side: Passcode */}
-            <div className="text-right space-y-0.5">
+            <div className="text-left sm:text-right space-y-0.5 w-full sm:w-auto">
               <div className="text-[12px] font-bold text-[#131619]">
                 Passcode:
               </div>
-              <div className="text-[13px] font-normal text-[#525266] flex items-center justify-end space-x-1.5">
+              <div className="text-[13px] font-normal text-[#525266] flex items-center sm:justify-end space-x-1.5">
                 <span>{user?.pmi_passcode || '352795'}</span>
                 <button onClick={handleCopyPasscode} title="Copy Passcode" className="text-[#747474] hover:text-[#0e71eb] cursor-pointer ml-1">
                   {copiedPasscode ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
@@ -239,11 +239,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
       </div>
 
       {/* Middle Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-5 items-start">
         {/* Left Column: Recent Activity Box */}
-        <div className="lg:col-span-7 bg-white p-5 lg:p-6 rounded-2xl border border-slate-200/80 shadow-2xs min-h-[320px] flex flex-col justify-between">
+        <div className="md:col-span-12 lg:col-span-7 bg-white p-4 sm:p-5 lg:p-6 rounded-2xl border border-slate-200/80 shadow-2xs min-h-[280px] sm:min-h-[320px] flex flex-col justify-between">
           <div>
-            <h2 className="text-[20px] font-bold text-[#131619] mb-4">
+            <h2 className="text-[18px] sm:text-[20px] font-bold text-[#131619] mb-4">
               Recent activity
             </h2>
 
@@ -260,7 +260,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 ))}
               </div>
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center py-10 space-y-2">
+              <div className="flex-1 flex flex-col items-center justify-center py-8 sm:py-10 space-y-2">
                 <Blue3DBoxSVG />
                 <span className="text-[13px] font-bold text-[#232333] text-center pt-2 block">No recent activity</span>
               </div>
@@ -292,9 +292,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
 
         {/* Right Column: Meetings Box */}
-        <div id="meetings" className="lg:col-span-5 bg-white p-5 lg:p-6 rounded-2xl border border-slate-200/80 shadow-2xs space-y-4">
+        <div id="meetings" className="md:col-span-12 lg:col-span-5 bg-white p-4 sm:p-5 lg:p-6 rounded-2xl border border-slate-200/80 shadow-2xs space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-[20px] font-bold text-[#131619]">Meetings</h2>
+            <h2 className="text-[18px] sm:text-[20px] font-bold text-[#131619]">Meetings</h2>
             <a href="#" className="text-[12px] font-normal text-[#0e71eb] hover:underline">
               Visit Meetings
             </a>
@@ -318,7 +318,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     </p>
                   </div>
 
-                  <div className="flex items-center space-x-2 pt-1">
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
                     <button
                       onClick={() => window.location.href = `/wc/${encodeURIComponent(m.id)}/join?isHost=true`}
                       className="px-4 py-1.5 bg-[#0e71eb] hover:bg-[#0b5cbe] text-white font-semibold text-[12px] rounded-lg shadow-2xs transition-colors cursor-pointer"
@@ -337,30 +337,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
               ))}
             </div>
           ) : (
-            <div className="p-4 bg-white border border-slate-200/80 rounded-xl space-y-2 shadow-2xs">
-              <div>
-                <h4 className="text-[13px] font-bold text-[#0e71eb]">My Meeting</h4>
-                <p className="text-[12px] font-bold text-[#131619] mt-0.5">1:00 AM - 1:40 AM</p>
-                <p className="text-[12px] text-[#747474] font-normal mt-0.5">
-                  Meeting ID: 861 5843 0811
-                </p>
+            <div className="p-4 bg-white border border-slate-200/80 rounded-xl space-y-3 shadow-2xs text-center">
+              <div className="py-2 bg-[#f7f9fa] rounded-lg font-bold text-[#131619] text-[13px]">
+                No Upcoming Meetings
               </div>
 
-              <div className="flex items-center space-x-2 pt-1">
-                <button
-                  onClick={() => window.location.href = '/wc/86158430811/join?isHost=true'}
-                  className="px-4 py-1.5 bg-[#0e71eb] hover:bg-[#0b5cbe] text-white font-semibold text-[12px] rounded-lg shadow-2xs transition-colors cursor-pointer"
-                >
-                  Start
-                </button>
-                <button
-                  onClick={() => openCopyModalForMeeting({ id: '861-5843-0811', title: 'My Meeting', passcode: '0bfJhU' })}
-                  className="px-3.5 py-1.5 bg-[#e8f2ff] hover:bg-[#d8e8ff] text-[#0e71eb] font-semibold text-[12px] rounded-lg transition-colors flex items-center space-x-1.5 cursor-pointer"
-                >
-                  <Copy className="w-3.5 h-3.5 text-[#0e71eb]" />
-                  <span>Copy Invitation</span>
-                </button>
-              </div>
+              <button
+                onClick={() => window.location.href = '/join'}
+                className="px-5 py-2 bg-[#e8f2ff] hover:bg-[#d8e8ff] text-[#0e71eb] font-semibold text-[12px] rounded-full transition-colors inline-block cursor-pointer"
+              >
+                Test Audio and Video
+              </button>
             </div>
           )}
 

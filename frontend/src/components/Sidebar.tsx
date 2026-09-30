@@ -15,7 +15,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
   const [supportOpen, setSupportOpen] = useState(false);
 
   return (
-    <aside className="w-52 bg-[#f7f9fa] border-r border-slate-200/70 flex flex-col py-3 px-3 text-[13px] font-sans select-none overflow-y-auto shrink-0 min-h-[calc(100vh-3.5rem)]">
+    <aside className="hidden lg:flex w-52 bg-[#f7f9fa] border-r border-slate-200/70 flex-col py-3 px-3 text-[13px] font-sans select-none overflow-y-auto shrink-0 min-h-[calc(100vh-3.5rem)]">
       {/* Home item */}
       <div className="mb-2">
         <Link
