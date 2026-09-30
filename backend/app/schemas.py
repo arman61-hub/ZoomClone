@@ -4,9 +4,10 @@ from datetime import datetime
 
 class UserBase(BaseModel):
     email: str
-    name: str = "Arman"
+    name: str = "Arman Redhu"
     plan_type: str = "Workplace Basic"
-    personal_meeting_id: str = "5602842970"
+    personal_meeting_id: str = "3527955122"
+    pmi_passcode: str = "0bfJhU"
 
 class UserResponse(UserBase):
     id: str

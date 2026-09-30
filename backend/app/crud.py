@@ -113,14 +113,48 @@ def create_scheduled_meeting(db: Session, schedule_in: schemas.ScheduleMeetingCr
     db.refresh(db_meeting)
     return db_meeting
 
+DEFAULT_PMI_PASSCODE = "0bfJhU"
+DEFAULT_PMI_FORMATTED = "352-795-5122"
+
 def get_meeting(db: Session, meeting_id: str) -> models.Meeting:
     formatted_id = format_meeting_id(meeting_id)
+    raw_digits = "".join(filter(str.isdigit, meeting_id))
+    
     meeting = db.query(models.Meeting).filter(
         (models.Meeting.id == meeting_id) | (models.Meeting.id == formatted_id)
     ).first()
+
+    # Ensure Personal Meeting ID (3527955122) is always active
+    if raw_digits == DEFAULT_PMI:
+        if not meeting:
+            user = get_or_create_default_user(db)
+            meeting = models.Meeting(
+                id=DEFAULT_PMI_FORMATTED,
+                host_id=user.id,
+                title="Arman Redhu's Personal Meeting Room",
+                description="Always active personal meeting space.",
+                status="active",
+                passcode=DEFAULT_PMI_PASSCODE,
+                scheduled_start=datetime.now(timezone.utc),
+                duration_minutes=1440
+            )
+            db.add(meeting)
+            db.commit()
+            db.refresh(meeting)
+        elif meeting.status == "ended":
+            meeting.status = "active"
+            meeting.ended_at = None
+            db.commit()
+            db.refresh(meeting)
+
     return meeting
 
 def end_meeting_in_db(db: Session, meeting_id: str) -> models.Meeting:
+    raw_digits = "".join(filter(str.isdigit, meeting_id))
+    # Never end the Personal Meeting ID
+    if raw_digits == DEFAULT_PMI:
+        return get_meeting(db, meeting_id)
+
     meeting = get_meeting(db, meeting_id)
     if meeting and meeting.status != "ended":
         meeting.status = "ended"

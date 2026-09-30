@@ -32,7 +32,7 @@ export const CopyInvitationModal: React.FC<CopyInvitationModalProps> = ({
   const formattedId = rawId.length === 10 
     ? `${rawId.slice(0, 3)} ${rawId.slice(3, 6)} ${rawId.slice(6)}`
     : meeting.id;
-  const passcode = meeting.passcode || '0bfJhU';
+  const passcode = meeting?.passcode;
   const timeStr = meeting.time_str || 'Sep 30, 2026 01:00 AM Pacific Time (US and Canada)';
 
   const invitationText = `${hostName} is inviting you to a scheduled Zoom meeting.
@@ -41,7 +41,7 @@ Topic: ${topic}
 Time: ${timeStr}
 
 Join Zoom Meeting
-http://localhost:3000/join?meetingId=${rawId}&pwd=B9agH85r77Hh1jdhrOCNQKgXLcozoz.1
+http://localhost:3000/join?meetingId=${rawId}&pwd=${passcode}
 
 Meeting chat link
 http://localhost:3000/wc/${rawId}/join

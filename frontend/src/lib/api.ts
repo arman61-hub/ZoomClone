@@ -6,6 +6,7 @@ export interface UserProfile {
   name: string;
   plan_type: string;
   personal_meeting_id: string;
+  pmi_passcode?: string;
   created_at: string;
 }
 

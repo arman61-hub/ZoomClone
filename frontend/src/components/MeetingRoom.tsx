@@ -78,6 +78,7 @@ interface MeetingRoomProps {
   initialVideoOff: boolean;
   isHost?: boolean;
   hostName?: string;
+  passcode?: string;
   onLeaveMeeting: () => void;
 }
 
@@ -88,6 +89,7 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
   initialVideoOff,
   isHost = false,
   hostName = 'Arman',
+  passcode,
   onLeaveMeeting,
 }) => {
   const router = useRouter();
@@ -152,7 +154,8 @@ export const MeetingRoom: React.FC<MeetingRoomProps> = ({
   const [copyNotification, setCopyNotification] = useState(false);
 
   const handleCopyInviteLink = () => {
-    const inviteUrl = `${window.location.origin}/join?meetingId=${encodeURIComponent(meetingId)}`;
+    const pwdQuery = passcode ? `&pwd=${encodeURIComponent(passcode)}` : '';
+    const inviteUrl = `${window.location.origin}/join?meetingId=${encodeURIComponent(meetingId)}${pwdQuery}`;
     navigator.clipboard.writeText(inviteUrl);
     setCopyNotification(true);
     setTimeout(() => setCopyNotification(false), 2500);

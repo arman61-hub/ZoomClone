@@ -14,9 +14,11 @@ function JoinMeetingContent() {
   const routeId = (params?.id as string) || '';
   const meetingIdParam = routeId || searchParams.get('meetingId') || searchParams.get('id') || '';
   const isHostParam = searchParams.get('isHost') === 'true' || searchParams.get('mode') === 'host';
+  const pwdParam = searchParams.get('pwd') || searchParams.get('passcode') || '';
+  const hasPasscodeInUrl = Boolean(pwdParam.trim());
 
   const [meetingIdInput, setMeetingIdInput] = useState(meetingIdParam);
-  const [passcode, setPasscode] = useState('');
+  const [passcode, setPasscode] = useState(pwdParam);
   const [yourName, setYourName] = useState('Arman Redhu');
   const [rememberName, setRememberName] = useState(true);
   
@@ -28,6 +30,12 @@ function JoinMeetingContent() {
   
   const [stream, setStream] = useState<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (pwdParam) {
+      setPasscode(pwdParam);
+    }
+  }, [pwdParam]);
 
   useEffect(() => {
     const savedName = localStorage.getItem('zoom_user_name');
@@ -90,7 +98,8 @@ function JoinMeetingContent() {
           name: yourName.trim(),
           audioOff: String(isAudioOff),
           videoOff: String(isVideoOff),
-          isHost: 'true'
+          isHost: 'true',
+          pwd: newMeeting.passcode || ''
         }).toString();
         router.push(`/meeting/${encodeURIComponent(newMeeting.id)}?${query}`);
       } catch (err) {
@@ -125,8 +134,8 @@ function JoinMeetingContent() {
         return;
       }
 
-      // Check Passcode ONLY for guest mode (not host mode)
-      if (!isHostParam && meeting.passcode) {
+      // Check Passcode ONLY for guest mode when passcode is not pre-validated in link
+      if (!isHostParam && meeting.passcode && !hasPasscodeInUrl) {
         if (!passcode.trim() || passcode.trim() !== meeting.passcode.trim()) {
           setValidationError(`Incorrect Passcode for Meeting ID ${cleanId}. Please check and try again.`);
           setIsValidating(false);
@@ -143,7 +152,8 @@ function JoinMeetingContent() {
         name: yourName.trim(),
         audioOff: String(isAudioOff),
         videoOff: String(isVideoOff),
-        isHost: String(isHostParam || meeting.host_id === 'default-user-arman')
+        isHost: String(Boolean(isHostParam)),
+        pwd: meeting.passcode || passcode || ''
       }).toString();
 
       router.push(`/meeting/${encodeURIComponent(meeting.id)}?${query}`);
@@ -259,20 +269,27 @@ function JoinMeetingContent() {
                   />
                 </div>
 
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    Meeting Passcode
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={passcode}
-                      onChange={(e) => setPasscode(e.target.value)}
-                      placeholder="Enter passcode (e.g. 839201)"
-                      className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 text-sm font-medium focus:border-[#0e71eb] focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all"
-                    />
+                {!hasPasscodeInUrl ? (
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Meeting Passcode
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={passcode}
+                        onChange={(e) => setPasscode(e.target.value)}
+                        placeholder="Enter passcode (e.g. 839201)"
+                        className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 text-sm font-medium focus:border-[#0e71eb] focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all"
+                      />
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-800 text-xs font-semibold flex items-center space-x-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>Passcode verified automatically from invite link</span>
+                  </div>
+                )}
               </>
             )}
 

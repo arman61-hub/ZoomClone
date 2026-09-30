@@ -48,8 +48,7 @@ def get_current_user(db: Session = Depends(get_db)):
 def create_instant_meeting(meeting_in: schemas.MeetingCreate, request: Request, db: Session = Depends(get_db)):
     meeting = crud.create_instant_meeting(db, meeting_in)
     base_url = str(request.base_url).rstrip("/")
-    # Build shareable invite URL
-    invite_url = f"{base_url}/meeting/{meeting.id}"
+    invite_url = f"{base_url}/join?meetingId={meeting.id}&passcode={meeting.passcode}"
     
     return schemas.MeetingResponse(
         id=meeting.id,
@@ -68,7 +67,7 @@ def create_instant_meeting(meeting_in: schemas.MeetingCreate, request: Request, 
 def schedule_meeting(schedule_in: schemas.ScheduleMeetingCreate, request: Request, db: Session = Depends(get_db)):
     meeting = crud.create_scheduled_meeting(db, schedule_in)
     base_url = str(request.base_url).rstrip("/")
-    invite_url = f"{base_url}/meeting/{meeting.id}"
+    invite_url = f"{base_url}/join?meetingId={meeting.id}&passcode={meeting.passcode}"
     
     return schemas.MeetingResponse(
         id=meeting.id,
@@ -99,7 +98,7 @@ def list_upcoming_meetings(request: Request, db: Session = Depends(get_db)):
             scheduled_start=m.scheduled_start,
             duration_minutes=m.duration_minutes,
             created_at=m.created_at,
-            invite_url=f"{base_url}/meeting/{m.id}"
+            invite_url=f"{base_url}/join?meetingId={m.id}&passcode={m.passcode}"
         )
         for m in meetings
     ]
@@ -120,7 +119,7 @@ def list_recent_meetings(request: Request, db: Session = Depends(get_db)):
             scheduled_start=m.scheduled_start,
             duration_minutes=m.duration_minutes,
             created_at=m.created_at,
-            invite_url=f"{base_url}/meeting/{m.id}"
+            invite_url=f"{base_url}/join?meetingId={m.id}&passcode={m.passcode}"
         )
         for m in meetings
     ]
@@ -142,7 +141,7 @@ def get_meeting_by_id(meeting_id: str, request: Request, db: Session = Depends(g
         scheduled_start=meeting.scheduled_start,
         duration_minutes=meeting.duration_minutes,
         created_at=meeting.created_at,
-        invite_url=f"{base_url}/meeting/{meeting.id}"
+        invite_url=f"{base_url}/join?meetingId={meeting.id}&passcode={meeting.passcode}"
     )
 
 # WebSocket Endpoint for WebRTC Signaling & Real-time Meeting State
@@ -201,8 +200,21 @@ async def websocket_endpoint(
                 target_participant_id = data.get("targetParticipantId")
                 
                 if action == "MUTE_ALL":
+                    if meeting_id in manager.rooms:
+                        for p_id, p_data in manager.rooms[meeting_id].items():
+                            if not p_data.get("is_host", False):
+                                p_data["is_audio_muted"] = True
+                        
+                        for p_id, p_data in list(manager.rooms[meeting_id].items()):
+                            if not p_data.get("is_host", False):
+                                try:
+                                    await p_data["socket"].send_text(json.dumps({"type": "FORCE_MUTE_AUDIO"}))
+                                except Exception:
+                                    pass
+
                     await manager.broadcast(meeting_id, {
-                        "type": "FORCE_MUTE_AUDIO"
+                        "type": "PARTICIPANTS_UPDATED",
+                        "participants": manager.get_room_participants_list(meeting_id)
                     })
                 elif action == "END_MEETING_FOR_ALL":
                     crud.end_meeting_in_db(db, meeting_id)

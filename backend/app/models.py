@@ -14,7 +14,8 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     name = Column(String, nullable=False, default="Arman")
     plan_type = Column(String, default="Workplace Basic")
-    personal_meeting_id = Column(String, default="5602842970")
+    personal_meeting_id = Column(String, default="3527955122")
+    pmi_passcode = Column(String, default="0bfJhU")
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     meetings = relationship("Meeting", back_populates="host")

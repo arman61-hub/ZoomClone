@@ -56,10 +56,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [recent, setRecent] = useState<Meeting[]>([]);
   const [isLoadingMeetings, setIsLoadingMeetings] = useState(true);
 
-  // Pagination states (2 items per page)
+  // Pagination states
   const [upcomingPage, setUpcomingPage] = useState(1);
   const [recentPage, setRecentPage] = useState(1);
-  const ITEMS_PER_PAGE = 2;
+  const UPCOMING_PER_PAGE = 2;
+  const RECENT_PER_PAGE = 5;
 
   const loadMeetings = async () => {
     try {
@@ -83,8 +84,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   const handleCopyPmi = () => {
     const pmi = user?.personal_meeting_id || '3527955122';
-    const formatted = `${pmi.slice(0, 3)} ${pmi.slice(3, 6)} ${pmi.slice(6)}`;
-    navigator.clipboard.writeText(formatted);
+    const passcode = user?.pmi_passcode || '0bfJhU';
+    const inviteUrl = `${window.location.origin}/join?meetingId=${pmi}&passcode=${passcode}`;
+    navigator.clipboard.writeText(inviteUrl);
     setCopiedPmi(true);
     setTimeout(() => setCopiedPmi(false), 2000);
   };
@@ -114,16 +116,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const uniqueRecent = recent.filter((m, index, self) => index === self.findIndex((t) => t.id === m.id));
 
   // Paginated Slices
-  const totalUpcomingPages = Math.ceil(uniqueUpcoming.length / ITEMS_PER_PAGE) || 1;
+  const totalUpcomingPages = Math.ceil(uniqueUpcoming.length / UPCOMING_PER_PAGE) || 1;
   const paginatedUpcoming = uniqueUpcoming.slice(
-    (upcomingPage - 1) * ITEMS_PER_PAGE,
-    upcomingPage * ITEMS_PER_PAGE
+    (upcomingPage - 1) * UPCOMING_PER_PAGE,
+    upcomingPage * UPCOMING_PER_PAGE
   );
 
-  const totalRecentPages = Math.ceil(uniqueRecent.length / ITEMS_PER_PAGE) || 1;
+  const totalRecentPages = Math.ceil(uniqueRecent.length / RECENT_PER_PAGE) || 1;
   const paginatedRecent = uniqueRecent.slice(
-    (recentPage - 1) * ITEMS_PER_PAGE,
-    recentPage * ITEMS_PER_PAGE
+    (recentPage - 1) * RECENT_PER_PAGE,
+    recentPage * RECENT_PER_PAGE
   );
 
   return (
@@ -194,13 +196,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </button>
           </div>
 
-          <div className="text-center space-y-0.5 pt-1">
+          <div className="text-center space-y-1 pt-1">
             <div className="text-[13px] font-bold text-[#131619]">
               Personal Meeting ID
             </div>
-            <div className="flex items-center justify-center space-x-1.5 text-[#525266] text-[13px] font-normal">
-              <span>352 795 5122</span>
-              <button onClick={handleCopyPmi} className="text-[#747474] hover:text-[#0e71eb] cursor-pointer">
+            <div className="flex items-center justify-center space-x-2 text-[#525266] text-[13px] font-normal">
+              <span className="font-bold text-[#131619]">352 795 5122</span>
+              <span className="text-slate-300">|</span>
+              <span className="text-[#525266]">Passcode: <span className="font-bold text-[#131619]">{user?.pmi_passcode || '0bfJhU'}</span></span>
+              <button onClick={handleCopyPmi} className="text-[#747474] hover:text-[#0e71eb] cursor-pointer ml-1">
                 {copiedPmi ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
               </button>
             </div>
@@ -238,7 +242,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
 
           {/* Recent Activity Pagination Controls */}
-          {recent.length > ITEMS_PER_PAGE && (
+          {recent.length > RECENT_PER_PAGE && (
             <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-[#747474]">
               <span>Page {recentPage} of {totalRecentPages}</span>
               <div className="flex items-center space-x-2">
@@ -335,7 +339,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           )}
 
           {/* Upcoming Meetings Pagination Controls */}
-          {upcoming.length > ITEMS_PER_PAGE && (
+          {upcoming.length > UPCOMING_PER_PAGE && (
             <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-[#747474]">
               <span>Page {upcomingPage} of {totalUpcomingPages}</span>
               <div className="flex items-center space-x-2">
