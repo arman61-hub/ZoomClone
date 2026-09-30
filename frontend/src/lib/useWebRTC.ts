@@ -88,7 +88,11 @@ export function useWebRTC(meetingId: string, participantId: string, displayName:
   useEffect(() => {
     if (!meetingId || !participantId) return;
 
-    const wsUrl = `ws://127.0.0.1:8000/ws/meeting/${encodeURIComponent(meetingId)}/${encodeURIComponent(participantId)}?display_name=${encodeURIComponent(displayName)}&is_host=${isHost}`;
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1';
+    const fallbackWsBase = apiBase.replace(/^http/, 'ws').replace(/\/api\/v1\/?$/, '');
+    const wsBase = process.env.NEXT_PUBLIC_WS_URL || fallbackWsBase;
+
+    const wsUrl = `${wsBase}/ws/meeting/${encodeURIComponent(meetingId)}/${encodeURIComponent(participantId)}?display_name=${encodeURIComponent(displayName)}&is_host=${isHost}`;
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
